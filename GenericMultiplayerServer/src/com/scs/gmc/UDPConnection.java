@@ -101,7 +101,7 @@ public final class UDPConnection extends Thread {
 							throw new IOException("Invalid check byte");
 						}
 
-						// Send it back out
+						// Todo - Send it back out
 					}
 
 				} catch (SocketTimeoutException ex) {
@@ -120,14 +120,16 @@ public final class UDPConnection extends Thread {
 
 
 	public void sendPacketToAll(String gameid, byte sendData[]) throws IOException {
-		synchronized (main.players_by_sck) { // todo - only the players in this game
+		synchronized (main.players_by_sck) {
 			Iterator<PlayerData> it = main.players_by_sck.values().iterator();
 			while (it.hasNext()) {
 				PlayerData pd = it.next();
-				if (pd != null && pd.address != null) { // Might be null if player's data hasn't been created
-					DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, pd.address, pd.port);
-					this.socket.send(sendPacket);
-					//ServerMain.p("Sent UDP packet to " + pd.name);
+				if (pd.gameid.equalsIgnoreCase(gameid)) { // only the players in this game
+					if (pd != null && pd.address != null) { // Might be null if player's data hasn't been created
+						DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, pd.address, pd.port);
+						this.socket.send(sendPacket);
+						//ServerMain.p("Sent UDP packet to " + pd.name);
+					}
 				}
 			}
 		}

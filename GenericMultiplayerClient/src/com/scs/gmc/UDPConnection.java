@@ -14,11 +14,11 @@ public final class UDPConnection extends Thread {
 	private InetAddress address;
 	private int port;
 	private volatile boolean stop_now = false;
-	private ClientMain main;
+	private ConnectorMain main;
 
 	public static int next_packet_id = 0;
 
-	public UDPConnection(ClientMain _main, String server, int _port) throws IOException {
+	public UDPConnection(ConnectorMain _main, String server, int _port) throws IOException {
 		super("UDPConnection_Thread");
 
 		this.setDaemon(true);
@@ -60,6 +60,18 @@ public final class UDPConnection extends Thread {
 							throw new IOException("Invalid check byte");
 						}
 						main.last_server_alive_response_time = System.currentTimeMillis();
+						break;
+						
+					case S2C_RAW_DATA:
+						int fromplayerid = dis.readInt();
+						int i1 = dis.readInt();
+						int i2 = dis.readInt();
+						check = dis.readByte();
+						if (check != Statics.CHECK_BYTE) {
+							throw new IOException("Invalid check byte");
+						}
+						
+						main.client.basicDataReceived(fromplayerid, i1, i2);
 						break;
 						
 					default:

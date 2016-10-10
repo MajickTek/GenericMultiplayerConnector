@@ -3,6 +3,8 @@ Expire games if no data for a long time
 Send id with udp packets so order can be checked
 Client validate data before sent to server
 
+
 LATER
+Send players scores
 Built in chat
 Group players by side

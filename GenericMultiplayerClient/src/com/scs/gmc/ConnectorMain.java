@@ -12,7 +12,7 @@ import ssmith.lang.Dates;
 import ssmith.lang.Functions;
 import ssmith.util.Interval;
 
-public class ClientMain implements Runnable { // todo - rename
+public class ConnectorMain implements Runnable {
 
 	public long last_server_alive_response_time;
 	public boolean server_responded_to_udpconn = false;
@@ -26,8 +26,9 @@ public class ClientMain implements Runnable { // todo - rename
 	private int port;
 	public String gameid;
 	public int min_players, max_players;
+	public ClientPlayerData players[];
 
-	public ClientMain(IGameClient _client, String _server, int _port, String _playername, String _gameid, int _min_players, int _max_players) throws UnknownHostException, IOException {
+	public ConnectorMain(IGameClient _client, String _server, int _port, String _playername, String _gameid, int _min_players, int _max_players) throws UnknownHostException, IOException {
 		super();
 
 		client = _client;
@@ -89,7 +90,53 @@ public class ClientMain implements Runnable { // todo - rename
 							throw new IOException("Invalid check byte");
 						}
 						break;
+						
+					case S2C_CURRENT_PLAYERS:
+						byte len = tcpconn.dis.readByte();
+						this.players = new ClientPlayerData[len];
+						for (int i=0 ; i<len ; i++) {
+							ClientPlayerData cpd = new ClientPlayerData();
+							cpd.id = tcpconn.dis.readInt();
+							cpd.name = tcpconn.dis.readUTF();
+							players[i] = cpd;
+						}
+						check = tcpconn.dis.readByte();
+						if (check != Statics.CHECK_BYTE) {
+							throw new IOException("Invalid check byte");
+						}
 
+						break;
+						
+					case S2C_NEW_PLAYER:
+						int id = tcpconn.dis.readInt();
+						check = tcpconn.dis.readByte();
+						if (check != Statics.CHECK_BYTE) {
+							throw new IOException("Invalid check byte");
+						}
+						
+						client.playerJoined(players[0]); // todo - find by id
+						break;
+						
+					case S2C_GAME_STARTED:
+						check = tcpconn.dis.readByte();
+						if (check != Statics.CHECK_BYTE) {
+							throw new IOException("Invalid check byte");
+						}
+						
+						client.gameStarted();
+						break;
+						
+					case S2C_PLAYER_LEFT:
+						String name = tcpconn.dis.readUTF();
+						check = tcpconn.dis.readByte();
+						if (check != Statics.CHECK_BYTE) {
+							throw new IOException("Invalid check byte");
+						}
+						
+						client.playerLeft(name);
+						break;
+						
+						
 					case S2C_PING_ME:
 						check = tcpconn.dis.readByte();
 						if (check != Statics.CHECK_BYTE) {
@@ -103,6 +150,18 @@ public class ClientMain implements Runnable { // todo - rename
 						//ClientMain.p("Responded to ping");
 						break;
 
+					case S2C_RAW_DATA:
+						int fromplayerid = tcpconn.dis.readInt();
+						int i1 = tcpconn.dis.readInt();
+						int i2 = tcpconn.dis.readInt();
+						check = tcpconn.dis.readByte();
+						if (check != Statics.CHECK_BYTE) {
+							throw new IOException("Invalid check byte");
+						}
+						
+						client.basicDataReceived(fromplayerid, i1, i2);
+						break;
+						
 					default:
 						throw new IOException("Unknown cmd: " +cmd);
 					}
@@ -176,7 +235,7 @@ public class ClientMain implements Runnable { // todo - rename
 	private void sendData() throws IOException {
 		//p("Sending our data...");
 		synchronized (tcpconn.dos) {
-			tcpconn.dos.writeByte(DataCommand.C2S_PLAYER_NAME.getID());
+			tcpconn.dos.writeByte(DataCommand.C2S_JOIN_GAME.getID());
 			tcpconn.dos.writeUTF(this.playername);
 			tcpconn.dos.writeUTF(this.gameid);
 			tcpconn.dos.writeInt(min_players);

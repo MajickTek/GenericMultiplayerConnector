@@ -25,10 +25,9 @@ public final class ServerMain implements ErrorHandler {
 	public Map<TCPClientConnection, PlayerData> players_by_sck = new HashMap<TCPClientConnection, PlayerData>();
 	public Map<String, ServerGame> games = new HashMap<String, ServerGame>();
 	private List<TCPClientConnection> new_players = new ArrayList<TCPClientConnection>(); // temp list to avoid sync issues
-	
+
 	private Interval alive_int = new Interval(15 * 1000);
 	private UDPConnection udpconn_4_receiving;
-	private SendEmailsThread emails = new SendEmailsThread();
 	private boolean stop = false;
 
 	public ServerMain() throws IOException {
@@ -61,9 +60,6 @@ public final class ServerMain implements ErrorHandler {
 		udpconn_4_receiving = new UDPConnection(this, port, this);
 		udpconn_4_receiving.start();
 
-		// todo - readd emails.start();
-		emails.addMsg("Started");
-
 		gameLoop();
 	}
 
@@ -83,10 +79,6 @@ public final class ServerMain implements ErrorHandler {
 					try {
 						DataInputStream dis = conn.getDataInputStream();
 						DataOutputStream dos = conn.getDataOutputStream();
-
-						/*if (playerdata != null) {
-							playerdata.process();
-						}*/
 
 						if (dis.available() > 1) {
 							DataCommand cmd = DataCommand.get(dis.readByte());
@@ -125,7 +117,7 @@ public final class ServerMain implements ErrorHandler {
 								playerdata.awaiting_ping_response = false;
 								break;
 
-							case C2S_PLAYER_NAME:
+							case C2S_JOIN_GAME:
 								String name = dis.readUTF().trim();
 								String gameid = dis.readUTF().trim();
 								int min_players = dis.readInt();
@@ -139,24 +131,42 @@ public final class ServerMain implements ErrorHandler {
 									synchronized (players_by_sck) {
 										players_by_sck.put(conn, playerdata);
 									}
+									// tell player their id
+									conn.getDataOutputStream().writeByte(DataCommand.S2C_PLAYER_ID.getID());
+									conn.getDataOutputStream().writeInt(playerdata.id);
+									conn.getDataOutputStream().writeByte(Statics.CHECK_BYTE);
+
 									// Check game exists
 									ServerGame game;
 									if (!games.containsKey(gameid)) {
 										game = new ServerGame(gameid, min_players, max_players); 
+										p("Created new game " + gameid);
 										games.put(gameid, game);
 									}
 									game = games.get(gameid);
-									// todo - check max players reached
-									game.players_by_id.put(playerdata.id, playerdata);
-									// todo - tell all other players new joiner
-									// todo - tell other players if min reached
-									//this.broadcastMsg(name + " has connected");
-									//this.emails.addMsg(name + " has connected");
-									//this.sendChatUpdate(dos);
+									if (game.players_by_id.size() < game.max_players) {
+										game.players_by_id.put(playerdata.id, playerdata);
+										this.sendCurrentPlayers(game);
+										// tell all other players new joiner
+										DataArrayOutputStream daos = new DataArrayOutputStream();
+										daos.writeByte(DataCommand.S2C_NEW_PLAYER.getID());
+										daos.writeInt(playerdata.id);
+										daos.writeByte(Statics.CHECK_BYTE);
+										this.sendTCPToAll(game, daos);
+										// tell other players if min reached
+										if (game.players_by_id.size() >= game.min_players && game.game_started == false) {
+											game.game_started = true;
+											daos = new DataArrayOutputStream();
+											daos.writeByte(DataCommand.S2C_GAME_STARTED.getID());
+											daos.writeByte(Statics.CHECK_BYTE);
+											this.sendTCPToAll(game, daos);
+										}
+									} else {
+										// todo - say max players reached
+									}
 								} else {
 									//this.sendErrorToClient(dos, "Invalid name: '" + name + "'");
-									//this.removePlayer(it_conn, conn);
-									to_remove.add(conn);
+									// todo - say name invalid
 								}
 								break;
 
@@ -199,10 +209,6 @@ public final class ServerMain implements ErrorHandler {
 						//to_remove.add(conn);
 					}
 				}
-
-				/*if (this.players_by_sck.size() > 0) {
-					game.gameLoop(interpol_ms);
-				}*/
 
 				for (TCPClientConnection conn : to_remove) {
 					this.removePlayer(conn);
@@ -249,17 +255,24 @@ public final class ServerMain implements ErrorHandler {
 				if (game != null) {
 					game.players_by_id.remove(player.id);
 				}
+				this.sendCurrentPlayers(game); // Must send this before we send the "player left" cmd
 				ServerMain.p("Removed player " + player.name + ".");
 				//this.broadcastMsg("Player " + player.name + " has left");
-				// todo - send cmd to client
+				// send cmd to client
+				DataArrayOutputStream daos = new DataArrayOutputStream();
+				daos.writeByte(DataCommand.S2C_PLAYER_LEFT.getID());
+				daos.writeUTF(player.name);
+				daos.writeByte(Statics.CHECK_BYTE);
+				this.sendTCPToAll(game, daos);
+				// todo - say who the winners is if only one player left
 			}
-			conn.close(); // This gets passed seperately as player may be null if they haven't join
+			conn.close(); // This gets passed separately as player may be null if they haven't join
 			ServerMain.p("There are now " + players_by_sck.size() + " connections.");
 		}
 	}
 
 
-	public void broadcastMsg(String msg) throws IOException {
+	/*public void broadcastMsg(String msg) throws IOException {
 		//p("Sending msg: " + msg);
 		DataArrayOutputStream daos = new DataArrayOutputStream();
 		daos.writeByte(DataCommand.S2C_MESSAGE.getID());
@@ -268,37 +281,55 @@ public final class ServerMain implements ErrorHandler {
 		this.sendTCPToAll(daos);
 		daos.close();
 	}
+	 */
 
-
-	public void broadcastData(int i1, int i2, ServerGame _game) throws IOException {
+	public void broadcastData(int fromplayerid, int i1, int i2, ServerGame game) throws IOException {
 		DataArrayOutputStream dos = new DataArrayOutputStream();
 		dos.writeByte(DataCommand.S2C_RAW_DATA.getID());
-		synchronized (players_by_sck) {
-			Iterator<PlayerData> it = this.players_by_sck.values().iterator();
-			while (it.hasNext()) {
-				PlayerData playerdata = it.next();
-				dos.writeInt(playerdata.id);
-				dos.writeLong(playerdata.ping);
-			}
-		}
+		dos.writeInt(fromplayerid);
+		dos.writeInt(i1);
+		dos.writeInt(i2);
 		dos.writeByte(Statics.CHECK_BYTE);
-		this.sendTCPToAll(dos);
+		this.sendTCPToAll(game, dos);
 		dos.close();
 
 	}
 
 
-	private synchronized void sendTCPToAll(DataArrayOutputStream daos) throws IOException {
-		ArrayList<TCPClientConnection> to_remove = new ArrayList<TCPClientConnection>(); 
+	private void sendCurrentPlayers(ServerGame game) throws IOException {
+		DataArrayOutputStream daos = new DataArrayOutputStream();
+		daos.writeByte(DataCommand.S2C_CURRENT_PLAYERS.getID());
+		daos.writeByte(game.players_by_id.size());
 		synchronized (players_by_sck) {
-			Iterator<TCPClientConnection> it_conn = players_by_sck.keySet().iterator();
+			Iterator<TCPClientConnection> it_conn = players_by_sck.keySet().iterator(); // todo - loop thru players_by_id
 			while (it_conn.hasNext()) {
 				TCPClientConnection conn = it_conn.next();
-				try {
-					conn.getDataOutputStream().write(daos.getByteArray());
-				} catch (IOException e) {
-					//e.printStackTrace();
-					to_remove.add(conn);//this.removePlayer(it_conn, conn);
+				PlayerData pd = players_by_sck.get(conn);
+				if (pd.gameid.equalsIgnoreCase(game.gameid)) {
+					daos.writeInt(pd.id);
+					daos.writeUTF(pd.name);
+				}
+			}
+		}
+		daos.writeByte(Statics.CHECK_BYTE);
+		this.sendTCPToAll(game, daos);
+	}
+
+
+	private void sendTCPToAll(ServerGame game, DataArrayOutputStream daos) throws IOException {
+		ArrayList<TCPClientConnection> to_remove = new ArrayList<TCPClientConnection>(); // Remove any broken ones
+		synchronized (players_by_sck) {
+			Iterator<TCPClientConnection> it_conn = players_by_sck.keySet().iterator(); // todo - loop thru players_by_id
+			while (it_conn.hasNext()) {
+				TCPClientConnection conn = it_conn.next();
+				PlayerData pd = players_by_sck.get(conn);
+				if (pd.gameid.equalsIgnoreCase(game.gameid)) {
+					try {
+						conn.getDataOutputStream().write(daos.getByteArray());
+					} catch (IOException e) {
+						//e.printStackTrace();
+						to_remove.add(conn);//this.removePlayer(it_conn, conn);
+					}
 				}
 			}
 		}
@@ -340,8 +371,6 @@ public final class ServerMain implements ErrorHandler {
 		synchronized (new_players) {
 			this.new_players.add(conn);
 		}
-		this.broadcastMsg("Player connected");
-		this.emails.addMsg("Player connected!");
 	}
 
 
@@ -351,7 +380,6 @@ public final class ServerMain implements ErrorHandler {
 		try {
 			String err = Dates.FormatDate(Calendar.getInstance().getTime(), Dates.UKDATE_FORMAT_WITH_TIME) + "\nVersion:" + Statics.CODE_VERSION + "\n" + Functions.Throwable2String(ex) + "\n\n";
 			//todo TextFile.QuickAppend(Statics.SERVER_ERROR_LOG, err, false);
-			emails.addMsg(err);
 		} catch (Exception ex2) {
 			ex2.printStackTrace();
 		}

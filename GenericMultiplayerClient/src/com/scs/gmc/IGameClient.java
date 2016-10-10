@@ -2,15 +2,15 @@ package com.scs.gmc;
 
 public interface IGameClient {
 
-	void currentPlayers(ClientPlayerData players[]);
+	void playerLeft(String name);
 	
-	void playerLeft(ClientPlayerData player, int numjoined);
-	
-	void playerJoined(ClientPlayerData player, int numjoined);
+	void playerJoined(ClientPlayerData player);
 	
 	void gameStarted();
 	
-	void gameEnded();
+	void gameEnded(boolean you_won); // todo - use, todo - reason (no-one left, won)
 	
 	void basicDataReceived(int fromplayerid, int i1, int i2);
+	
+	void error(String msg);
 }
