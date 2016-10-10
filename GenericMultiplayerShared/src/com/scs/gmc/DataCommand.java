@@ -8,7 +8,7 @@ public enum DataCommand {
 	S2C_ERROR(3),
 	C2S_CHECK_ALIVE(4),
 	S2C_PLAYER_ID(5),
-	C2S_UDP_CONN(6),
+	C2S_UDP_CONN(6), // To set up the UDP conn
 	S2C_UDP_CONN_OK(7),
 	S2C_RAW_DATA(8),
 	C2S_RAW_DATA(9),

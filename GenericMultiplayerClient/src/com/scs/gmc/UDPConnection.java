@@ -61,6 +61,7 @@ public final class UDPConnection extends Thread {
 						}
 						main.last_server_alive_response_time = System.currentTimeMillis();
 						break;
+						
 					default:
 						throw new IllegalArgumentException("Unknown command: " + cmd);
 					}

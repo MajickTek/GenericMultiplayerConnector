@@ -49,31 +49,33 @@ public final class UDPConnection extends Thread {
 					DataCommand cmd = DataCommand.get(dis.readByte());
 					switch(cmd) {
 					case C2S_UDP_CONN:
+						String gameid = dis.readUTF();
 						int playerid = dis.readInt();
 						byte check = dis.readByte();
 						if (check != Statics.CHECK_BYTE) {
 							throw new IOException("Invalid check byte");
 						}
-						PlayerData player = main.game.players_by_id.get(playerid);
-						if (player != null) {
-							if (player.address == null) { // Haven't got the data yet
-								player.address = packet.getAddress();
-								player.port = packet.getPort();
-							}
+						ServerGame game = main.games.get(gameid);
+						if (game != null) {
+							PlayerData player = game.players_by_id.get(playerid);
+							if (player != null) {
+								if (player.address == null) { // Haven't got the data yet
+									player.address = packet.getAddress();
+									player.port = packet.getPort();
+								}
 
-							// Send response
-							DataArrayOutputStream bos = new DataArrayOutputStream();
-							bos.write(DataCommand.S2C_UDP_CONN_OK.getID());
-							bos.writeByte(Statics.CHECK_BYTE);
-							byte b[] = bos.getByteArray();
-							DatagramPacket sendPacket = new DatagramPacket(b, b.length, packet.getAddress(), packet.getPort());
-							this.socket.send(sendPacket);
-							bos.close();
+								// Send response
+								DataArrayOutputStream bos = new DataArrayOutputStream();
+								bos.write(DataCommand.S2C_UDP_CONN_OK.getID());
+								bos.writeByte(Statics.CHECK_BYTE);
+								byte b[] = bos.getByteArray();
+								DatagramPacket sendPacket = new DatagramPacket(b, b.length, packet.getAddress(), packet.getPort());
+								this.socket.send(sendPacket);
+								bos.close();
+							}
 						}
 						break;
-						/*case C2S_OBJECT_UPDATE:
-						main.updateObject(dis, true);
-						break;*/
+
 					case C2S_CHECK_ALIVE:
 						check = dis.readByte();
 						if (check != Statics.CHECK_BYTE) {
@@ -88,7 +90,20 @@ public final class UDPConnection extends Thread {
 						this.socket.send(sendPacket);
 						bos.close();
 						break;
+
+					case C2S_RAW_DATA:
+						gameid = dis.readUTF();
+						playerid = dis.readInt();
+						int i1 = dis.readInt();
+						int i2 = dis.readInt();
+						check = dis.readByte();
+						if (check != Statics.CHECK_BYTE) {
+							throw new IOException("Invalid check byte");
+						}
+
+						// Send it back out
 					}
+
 				} catch (SocketTimeoutException ex) {
 					// Loop around
 				} catch (Exception ex) {
@@ -104,8 +119,8 @@ public final class UDPConnection extends Thread {
 	}
 
 
-	public void sendPacketToAll(byte sendData[]) throws IOException {
-		synchronized (main.players_by_sck) {
+	public void sendPacketToAll(String gameid, byte sendData[]) throws IOException {
+		synchronized (main.players_by_sck) { // todo - only the players in this game
 			Iterator<PlayerData> it = main.players_by_sck.values().iterator();
 			while (it.hasNext()) {
 				PlayerData pd = it.next();

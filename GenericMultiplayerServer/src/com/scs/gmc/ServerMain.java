@@ -23,13 +23,13 @@ import ssmith.util.Interval;
 public final class ServerMain implements ErrorHandler {
 
 	public Map<TCPClientConnection, PlayerData> players_by_sck = new HashMap<TCPClientConnection, PlayerData>();
-	private List<TCPClientConnection> new_players = new ArrayList<TCPClientConnection>();
-
-	public ServerGame game;
+	public Map<String, ServerGame> games = new HashMap<String, ServerGame>();
+	private List<TCPClientConnection> new_players = new ArrayList<TCPClientConnection>(); // temp list to avoid sync issues
+	
 	private Interval alive_int = new Interval(15 * 1000);
 	private UDPConnection udpconn_4_receiving;
-	//private StringBuilder all_chat = new StringBuilder();
 	private SendEmailsThread emails = new SendEmailsThread();
+	private boolean stop = false;
 
 	public ServerMain() throws IOException {
 		super();
@@ -53,8 +53,6 @@ public final class ServerMain implements ErrorHandler {
 			e.printStackTrace();
 		}
 
-		//createNewGame(false);
-
 		int port = Integer.parseInt(props.getProperty("port", ""+Statics.DEF_PORT));
 
 		TCPNetworkServer tcp_server = new TCPNetworkServer(this, port, this);
@@ -73,9 +71,9 @@ public final class ServerMain implements ErrorHandler {
 	private void gameLoop() {
 		//long interpol_ms = 1;
 		ArrayList<TCPClientConnection> to_remove = new ArrayList<TCPClientConnection>(); 
-		while (true) {
+		while (!stop) {
 			try {
-				long start = System.currentTimeMillis();
+				//long start = System.currentTimeMillis();
 				boolean check_ping = alive_int.hitInterval();
 				//synchronized (players_by_sck) {
 				Iterator<TCPClientConnection> it_conn = players_by_sck.keySet().iterator();
@@ -129,18 +127,31 @@ public final class ServerMain implements ErrorHandler {
 
 							case C2S_PLAYER_NAME:
 								String name = dis.readUTF().trim();
+								String gameid = dis.readUTF().trim();
+								int min_players = dis.readInt();
+								int max_players = dis.readInt();
 								check = dis.readByte();
 								if (check != Statics.CHECK_BYTE) {
 									throw new IOException("Invalid check byte");
 								}
-								if (name.length() > 0 && name.equalsIgnoreCase("admin") == false) { 
-									playerdata = new PlayerData(this, conn, name);
+								if (name.length() > 0) {// && name.equalsIgnoreCase("admin") == false) { 
+									playerdata = new PlayerData(this, conn, name, gameid);
 									synchronized (players_by_sck) {
 										players_by_sck.put(conn, playerdata);
 									}
+									// Check game exists
+									ServerGame game;
+									if (!games.containsKey(gameid)) {
+										game = new ServerGame(gameid, min_players, max_players); 
+										games.put(gameid, game);
+									}
+									game = games.get(gameid);
+									// todo - check max players reached
 									game.players_by_id.put(playerdata.id, playerdata);
-									this.broadcastMsg(name + " has connected");
-									this.emails.addMsg(name + " has connected");
+									// todo - tell all other players new joiner
+									// todo - tell other players if min reached
+									//this.broadcastMsg(name + " has connected");
+									//this.emails.addMsg(name + " has connected");
 									//this.sendChatUpdate(dos);
 								} else {
 									//this.sendErrorToClient(dos, "Invalid name: '" + name + "'");
@@ -167,6 +178,7 @@ public final class ServerMain implements ErrorHandler {
 									throw new IOException("Unknown command: " + cmd);
 								} else {
 									p("Unknown command: " + cmd);
+									to_remove.add(conn);
 								}
 							}
 						}
@@ -216,7 +228,7 @@ public final class ServerMain implements ErrorHandler {
 				}
 			}
 		}
-		/*this.udpconn_4_receiving.stopNow();
+		this.udpconn_4_receiving.stopNow();
 		p("Server exiting");
 		// loop through all connections and close them
 		Iterator<TCPClientConnection> it = players_by_sck.keySet().iterator();
@@ -224,7 +236,7 @@ public final class ServerMain implements ErrorHandler {
 			TCPClientConnection conn = it.next();
 			conn.close();
 		}
-		System.exit(0);*/
+		System.exit(0);
 	}
 
 
@@ -233,10 +245,12 @@ public final class ServerMain implements ErrorHandler {
 			PlayerData player = this.players_by_sck.get(conn);
 			players_by_sck.remove(conn); // So we don't send them "remove object" messages
 			if (player != null) {
-				game.players_by_id.remove(player.id);
-				//game.playerLeft(player);
+				ServerGame game = this.games.get(player.gameid);
+				if (game != null) {
+					game.players_by_id.remove(player.id);
+				}
 				ServerMain.p("Removed player " + player.name + ".");
-				this.broadcastMsg("Player " + player.name + " has left");
+				//this.broadcastMsg("Player " + player.name + " has left");
 				// todo - send cmd to client
 			}
 			conn.close(); // This gets passed seperately as player may be null if they haven't join

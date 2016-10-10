@@ -1,5 +1,5 @@
 package com.scs.gmc;
 
-public class Main {
+public class Main { // todo - delete this
 
 }
