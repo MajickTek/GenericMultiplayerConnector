@@ -28,5 +28,5 @@ public class AWTFunctions {
 
 		g.setColor(Color.gray);
 		g.drawString(text, x, y);
-}
+	}
 }

@@ -1,18 +1,33 @@
-/**
- *
- * @author  steve smith
- * @version
+/*
+ *  This file is part of GenericMultiplayerConnector.
+
+    GenericMultiplayerConnector is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    GenericMultiplayerConnector is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with GenericMultiplayerConnector.  If not, see <http://www.gnu.org/licenses/>.
+
  */
 
 package ssmith.net;
 
-import java.net.*;
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.Socket;
 
-/**
+/*
  * Extend this class for the clients.
  */
-public abstract class TCPNetworkMultiServerConn3 {//extends Thread {
+public abstract class TCPNetworkMultiServerConn3 {
 
 	public Socket sck;
 	private DataOutputStream dos;
@@ -22,7 +37,7 @@ public abstract class TCPNetworkMultiServerConn3 {//extends Thread {
 
 	
 	public TCPNetworkMultiServerConn3(TCPNetworkMultiServer3 svr, Socket sck) throws IOException {
-		super();//"Client connection");
+		super();
 		
 		//this.setDaemon(false); //No, as we don't want to stop it abruptly
 		this.sck = sck;

@@ -1,3 +1,21 @@
+/*
+ *  This file is part of GenericMultiplayerConnector.
+
+    GenericMultiplayerConnector is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    GenericMultiplayerConnector is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with GenericMultiplayerConnector.  If not, see <http://www.gnu.org/licenses/>.
+
+ */
+
 package com.scs.gmc;
 
 import java.io.DataInputStream;
@@ -22,19 +40,19 @@ import ssmith.util.Interval;
 
 public final class ServerMain implements ErrorHandler {
 
-	public Map<TCPClientConnection, PlayerData> players_by_sck = new HashMap<TCPClientConnection, PlayerData>();
-	public Map<String, ServerGame> games = new HashMap<String, ServerGame>();
-	private List<TCPClientConnection> new_players = new ArrayList<TCPClientConnection>(); // temp list to avoid sync issues
+	public final Map<TCPClientConnection, PlayerData> players_by_sck = new HashMap<TCPClientConnection, PlayerData>();
+	public final Map<String, ServerGame> games = new HashMap<String, ServerGame>();
+	private final Map<TCPClientConnection, PlayerData> new_players = new HashMap<TCPClientConnection, PlayerData>(); // temp list to avoid sync issues
+	private final List<TCPClientConnection> to_remove = new ArrayList<TCPClientConnection>(); 
 
-	private Interval alive_int = new Interval(15 * 1000);
-	private UDPConnection udpconn_4_receiving;
+	private final Interval alive_int = new Interval(15 * 1000);
+	private final UDPConnection udpconn_4_receiving;
 	private boolean stop = false;
 
 	public ServerMain() throws IOException {
 		super();
 
 		p("Starting " + Statics.TITLE + " server v" + Statics.CODE_VERSION);
-		//p("Game Type = " + Statics.GAME_TYPE.name());
 		if (Statics.DEBUG) {
 			p("####### DEBUG MODE! ############");
 		}
@@ -65,13 +83,9 @@ public final class ServerMain implements ErrorHandler {
 
 
 	private void gameLoop() {
-		//long interpol_ms = 1;
-		ArrayList<TCPClientConnection> to_remove = new ArrayList<TCPClientConnection>(); 
 		while (!stop) {
 			try {
-				//long start = System.currentTimeMillis();
 				boolean check_ping = alive_int.hitInterval();
-				//synchronized (players_by_sck) {
 				Iterator<TCPClientConnection> it_conn = players_by_sck.keySet().iterator();
 				while (it_conn.hasNext()) {
 					TCPClientConnection conn = it_conn.next();
@@ -82,9 +96,7 @@ public final class ServerMain implements ErrorHandler {
 
 						if (dis.available() > 1) {
 							DataCommand cmd = DataCommand.get(dis.readByte());
-							if (Statics.VERBOSE) {
-								p("Got cmd: " + cmd.name());
-							}
+							//p("Got cmd: " + cmd.name());
 							switch (cmd) {
 							case C2S_VERSION:
 								int client_version = dis.readInt();
@@ -92,17 +104,16 @@ public final class ServerMain implements ErrorHandler {
 								if (check != Statics.CHECK_BYTE) {
 									throw new IOException("Invalid check byte");
 								}
-								p("Got version " + client_version);
+								//p("Got version " + client_version);
 
-								synchronized (dos) { 
-									if (client_version >= Statics.COMMS_VERSION) {
-										dos.writeByte(DataCommand.S2C_OK.getID());
+								if (client_version >= Statics.COMMS_VERSION) {
+									synchronized (dos) { 
+										dos.writeByte(DataCommand.S2C_VERSION_OK.getID());
 										dos.writeByte(Statics.CHECK_BYTE);
-									} else {
-										//todo sendErrorToClient(dos, "Invalid version; " + Statics.CODE_VERSION + " required.  Run update to get latest version.");
-										//this.removePlayer(it_conn, conn);
-										to_remove.add(conn);
 									}
+								} else {
+									sendErrorToClient(dos, ErrorCodes.INCOMPATIBLE_CODE_VERSION, "Invalid version; " + Statics.CODE_VERSION + " required.  Run update to get latest version.");
+									this.schedulePlayerRemoval(conn);
 								}
 								break;
 
@@ -126,16 +137,18 @@ public final class ServerMain implements ErrorHandler {
 								if (check != Statics.CHECK_BYTE) {
 									throw new IOException("Invalid check byte");
 								}
-								if (name.length() > 0) {// && name.equalsIgnoreCase("admin") == false) { 
+								if (name.length() > 0) { 
 									playerdata = new PlayerData(this, conn, name, gameid);
+									p(name + " has joined game " + gameid);
 									synchronized (players_by_sck) {
-										players_by_sck.put(conn, playerdata);
+										new_players.put(conn, playerdata);
 									}
 									// tell player their id
-									conn.getDataOutputStream().writeByte(DataCommand.S2C_PLAYER_ID.getID());
-									conn.getDataOutputStream().writeInt(playerdata.id);
-									conn.getDataOutputStream().writeByte(Statics.CHECK_BYTE);
-
+									synchronized (conn) {
+										conn.getDataOutputStream().writeByte(DataCommand.S2C_PLAYER_ID.getID());
+										conn.getDataOutputStream().writeInt(playerdata.id);
+										conn.getDataOutputStream().writeByte(Statics.CHECK_BYTE);
+									}
 									// Check game exists
 									ServerGame game;
 									if (!games.containsKey(gameid)) {
@@ -144,39 +157,86 @@ public final class ServerMain implements ErrorHandler {
 										games.put(gameid, game);
 									}
 									game = games.get(gameid);
-									if (game.players_by_id.size() < game.max_players) {
+									if (game.players_by_id.size() < game.max_players || game.max_players < 0) {
 										game.players_by_id.put(playerdata.id, playerdata);
 										this.sendCurrentPlayers(game);
 										// tell all other players new joiner
 										DataArrayOutputStream daos = new DataArrayOutputStream();
 										daos.writeByte(DataCommand.S2C_NEW_PLAYER.getID());
-										daos.writeInt(playerdata.id);
+										daos.writeUTF(playerdata.name);
 										daos.writeByte(Statics.CHECK_BYTE);
-										this.sendTCPToAll(game, daos);
+										this.sendTCPToAll(game, daos, playerdata.id);
+
 										// tell other players if min reached
 										if (game.players_by_id.size() >= game.min_players && game.game_started == false) {
+											p("Game " + game.gameid + " has started");
 											game.game_started = true;
 											daos = new DataArrayOutputStream();
 											daos.writeByte(DataCommand.S2C_GAME_STARTED.getID());
 											daos.writeByte(Statics.CHECK_BYTE);
-											this.sendTCPToAll(game, daos);
+											this.sendTCPToAll(game, daos, -1);
 										}
 									} else {
-										// todo - say max players reached
+										this.sendErrorToClient(dos, ErrorCodes.TOO_MANY_PLAYERS, "Too many players");
 									}
 								} else {
-									//this.sendErrorToClient(dos, "Invalid name: '" + name + "'");
-									// todo - say name invalid
+									this.sendErrorToClient(dos, ErrorCodes.INVALID_NAME, "Invalid name: '" + name + "'");
 								}
 								break;
 
 
-							case C2S_EXIT:
+							case C2S_DISCONNECTING:
 								check = dis.readByte();
 								if (check != Statics.CHECK_BYTE) {
 									throw new IOException("Invalid check byte");
 								}
-								to_remove.add(conn);
+
+								p("Player " + playerdata.name + " disconnecting.");
+								this.schedulePlayerRemoval(conn);
+								break;
+
+							case C2S_TCP_RAW_DATA:
+								int code = dis.readInt();
+								int value = dis.readInt();
+								check = dis.readByte();
+								if (check != Statics.CHECK_BYTE) {
+									throw new IOException("Invalid check byte");
+								}
+								this.broadcastKeyValueData(playerdata.id, code, value, games.get(playerdata.gameid));
+								break;
+
+							case C2S_TCP_STRING_DATA:
+								String data = dis.readUTF();
+								check = dis.readByte();
+								if (check != Statics.CHECK_BYTE) {
+									throw new IOException("Invalid check byte");
+								}
+								this.broadcastStringData(playerdata.id, data, games.get(playerdata.gameid));
+								break;
+
+							case C2S_OUT_OF_GAME:
+								check = dis.readByte();
+								if (check != Statics.CHECK_BYTE) {
+									throw new IOException("Invalid check byte");
+								}
+								p("Player " + playerdata.name + " is out of the game.");
+								playerdata.in_game = false;
+								checkEnoughPlayers(playerdata.gameid);
+								break;
+
+							case C2S_WINNER:
+								check = dis.readByte();
+								if (check != Statics.CHECK_BYTE) {
+									throw new IOException("Invalid check byte");
+								}
+								ServerGame game = games.get(playerdata.gameid);
+								if (game != null) {
+									if (game.winner == null) {
+										game.winner = playerdata;
+										p("Player " + playerdata.name + " claims to have won");
+										this.sendGameOverAndRemoveGame(game, playerdata);
+									}
+								}
 								break;
 
 							case C2S_SEND_ERROR:
@@ -184,12 +244,12 @@ public final class ServerMain implements ErrorHandler {
 								break;
 
 							default:
-								if (Statics.STRICT) {
+								/*if (Statics.STRICT) {
 									throw new IOException("Unknown command: " + cmd);
-								} else {
-									p("Unknown command: " + cmd);
-									to_remove.add(conn);
-								}
+								} else {*/
+								p("Unknown command: " + cmd);
+								this.schedulePlayerRemoval(conn);
+								//}
 							}
 						}
 
@@ -202,24 +262,25 @@ public final class ServerMain implements ErrorHandler {
 							playerdata.awaiting_ping_response = true;
 						}
 					} catch (IOException ex) {
+						System.err.println("Error sending to player " + playerdata.name);
 						ex.printStackTrace(); // Don't log it since there could be loads
-						to_remove.add(conn);
+						this.schedulePlayerRemoval(conn);
 					} catch (Exception ex) {
 						handleError(ex);
-						//to_remove.add(conn);
 					}
 				}
 
-				for (TCPClientConnection conn : to_remove) {
-					this.removePlayer(conn);
+				synchronized (to_remove) {
+					while (to_remove.isEmpty() == false) {
+						this.removePlayer(to_remove.remove(0));
+					}
 				}
-				to_remove.clear();
 
 
 				synchronized (new_players) {
-					for (TCPClientConnection conn : this.new_players) {
+					for (TCPClientConnection conn : this.new_players.keySet()) {
 						synchronized (players_by_sck) {
-							this.players_by_sck.put(conn, null);
+							this.players_by_sck.put(conn, new_players.get(conn));
 						}
 					}
 					new_players.clear();
@@ -229,18 +290,20 @@ public final class ServerMain implements ErrorHandler {
 				Functions.delay(200);
 			} catch (Exception ex) {
 				handleError(ex);
-				if (Statics.STRICT) {
+				/*if (Statics.STRICT) {
 					System.exit(0);				
-				}
+				}*/
 			}
 		}
 		this.udpconn_4_receiving.stopNow();
 		p("Server exiting");
 		// loop through all connections and close them
-		Iterator<TCPClientConnection> it = players_by_sck.keySet().iterator();
-		while (it.hasNext()) {
-			TCPClientConnection conn = it.next();
-			conn.close();
+		synchronized (players_by_sck) {
+			Iterator<TCPClientConnection> it = players_by_sck.keySet().iterator();
+			while (it.hasNext()) {
+				TCPClientConnection conn = it.next();
+				conn.close();
+			}
 		}
 		System.exit(0);
 	}
@@ -254,8 +317,8 @@ public final class ServerMain implements ErrorHandler {
 				ServerGame game = this.games.get(player.gameid);
 				if (game != null) {
 					game.players_by_id.remove(player.id);
+					this.sendCurrentPlayers(game); // Must send this before we send the "player left" cmd
 				}
-				this.sendCurrentPlayers(game); // Must send this before we send the "player left" cmd
 				ServerMain.p("Removed player " + player.name + ".");
 				//this.broadcastMsg("Player " + player.name + " has left");
 				// send cmd to client
@@ -263,8 +326,10 @@ public final class ServerMain implements ErrorHandler {
 				daos.writeByte(DataCommand.S2C_PLAYER_LEFT.getID());
 				daos.writeUTF(player.name);
 				daos.writeByte(Statics.CHECK_BYTE);
-				this.sendTCPToAll(game, daos);
-				// todo - say who the winners is if only one player left
+				this.sendTCPToAll(game, daos, player.id);
+				if (game != null) {
+					checkEnoughPlayers(game.gameid);
+				}
 			}
 			conn.close(); // This gets passed separately as player may be null if they haven't join
 			ServerMain.p("There are now " + players_by_sck.size() + " connections.");
@@ -272,25 +337,84 @@ public final class ServerMain implements ErrorHandler {
 	}
 
 
-	/*public void broadcastMsg(String msg) throws IOException {
-		//p("Sending msg: " + msg);
-		DataArrayOutputStream daos = new DataArrayOutputStream();
-		daos.writeByte(DataCommand.S2C_MESSAGE.getID());
-		daos.writeUTF(msg);
-		daos.writeByte(Statics.CHECK_BYTE);
-		this.sendTCPToAll(daos);
-		daos.close();
+	private void checkEnoughPlayers(String gameid) throws IOException {
+		ServerGame game = this.games.get(gameid);
+		if (game != null) {
+			int num_players = 0;
+			PlayerData only_player = null;
+			try {
+				synchronized (game.players_by_id) {
+					if (game.players_by_id != null) {
+						Iterator<PlayerData> it = game.players_by_id.values().iterator();
+						while (it.hasNext()) {
+							PlayerData pd = it.next();
+							if (pd.in_game) {
+								only_player = pd;
+								num_players++;
+							}
+						}
+					}
+				}
+				if (num_players <= 1) {
+					if (num_players == 1) {
+						this.sendGameOverAndRemoveGame(game, only_player);
+						only_player.in_game = false;
+					} else if (num_players == 0) {
+						this.sendGameOverAndRemoveGame(game, null);
+					}
+				}
+			} catch (NullPointerException ex) {
+				ex.printStackTrace();
+			}
+		}
 	}
-	 */
 
-	public void broadcastData(int fromplayerid, int i1, int i2, ServerGame game) throws IOException {
+
+	private void sendGameOverAndRemoveGame(ServerGame game, PlayerData winner) throws IOException {
+		if (winner != null) {
+			p("Player " + winner.name + " has won!");
+		} else {
+			p("No-one has won.");
+		}
+		DataArrayOutputStream daos = new DataArrayOutputStream();
+		daos.writeByte(DataCommand.S2C_GAME_OVER.getID());
+		if (winner != null) {
+			daos.writeInt(winner.id);
+			daos.writeUTF(winner.name);
+		} else {
+			daos.writeInt(-1);
+			daos.writeUTF("No-one");
+		}
+		daos.writeByte(Statics.CHECK_BYTE);
+		this.sendTCPToAll(game, daos, -1);
+		daos.close();
+
+		this.games.remove(game.gameid);
+		p("Removed game " + game.gameid);
+
+	}
+
+
+	public void broadcastKeyValueData(int fromplayerid, int code, int value, ServerGame game) throws IOException {
 		DataArrayOutputStream dos = new DataArrayOutputStream();
-		dos.writeByte(DataCommand.S2C_RAW_DATA.getID());
+		dos.writeByte(DataCommand.S2C_TCP_RAW_DATA.getID());
 		dos.writeInt(fromplayerid);
-		dos.writeInt(i1);
-		dos.writeInt(i2);
+		dos.writeInt(code);
+		dos.writeInt(value);
 		dos.writeByte(Statics.CHECK_BYTE);
-		this.sendTCPToAll(game, dos);
+		this.sendTCPToAll(game, dos, fromplayerid);
+		dos.close();
+
+	}
+
+
+	public void broadcastStringData(int fromplayerid, String data, ServerGame game) throws IOException {
+		DataArrayOutputStream dos = new DataArrayOutputStream();
+		dos.writeByte(DataCommand.S2C_TCP_STRING_DATA.getID());
+		dos.writeInt(fromplayerid);
+		dos.writeUTF(data);
+		dos.writeByte(Statics.CHECK_BYTE);
+		this.sendTCPToAll(game, dos, fromplayerid);
 		dos.close();
 
 	}
@@ -300,11 +424,10 @@ public final class ServerMain implements ErrorHandler {
 		DataArrayOutputStream daos = new DataArrayOutputStream();
 		daos.writeByte(DataCommand.S2C_CURRENT_PLAYERS.getID());
 		daos.writeByte(game.players_by_id.size());
-		synchronized (players_by_sck) {
-			Iterator<TCPClientConnection> it_conn = players_by_sck.keySet().iterator(); // todo - loop thru players_by_id
-			while (it_conn.hasNext()) {
-				TCPClientConnection conn = it_conn.next();
-				PlayerData pd = players_by_sck.get(conn);
+		synchronized (game.players_by_id) {
+			Iterator<PlayerData> it_p = game.players_by_id.values().iterator();
+			while (it_p.hasNext()) {
+				PlayerData pd = it_p.next();
 				if (pd.gameid.equalsIgnoreCase(game.gameid)) {
 					daos.writeInt(pd.id);
 					daos.writeUTF(pd.name);
@@ -312,29 +435,45 @@ public final class ServerMain implements ErrorHandler {
 			}
 		}
 		daos.writeByte(Statics.CHECK_BYTE);
-		this.sendTCPToAll(game, daos);
+		this.sendTCPToAll(game, daos, -1);
 	}
 
 
-	private void sendTCPToAll(ServerGame game, DataArrayOutputStream daos) throws IOException {
-		ArrayList<TCPClientConnection> to_remove = new ArrayList<TCPClientConnection>(); // Remove any broken ones
-		synchronized (players_by_sck) {
-			Iterator<TCPClientConnection> it_conn = players_by_sck.keySet().iterator(); // todo - loop thru players_by_id
-			while (it_conn.hasNext()) {
-				TCPClientConnection conn = it_conn.next();
-				PlayerData pd = players_by_sck.get(conn);
-				if (pd.gameid.equalsIgnoreCase(game.gameid)) {
-					try {
-						conn.getDataOutputStream().write(daos.getByteArray());
-					} catch (IOException e) {
-						//e.printStackTrace();
-						to_remove.add(conn);//this.removePlayer(it_conn, conn);
+	private void sendTCPToAll(ServerGame game, DataArrayOutputStream daos, int exceptplayerid) throws IOException {
+		if (game != null) {
+			synchronized (game.players_by_id) {
+				Iterator<PlayerData> it_p = game.players_by_id.values().iterator();
+				while (it_p.hasNext()) {
+					PlayerData pd = it_p.next();
+					if (pd.id != exceptplayerid) {
+						try {
+							pd.conn.getDataOutputStream().write(daos.getByteArray());
+							pd.conn.getDataOutputStream().flush();
+						} catch (IOException e) {
+							this.schedulePlayerRemoval(pd.conn);
+						}
 					}
 				}
 			}
 		}
-		for (TCPClientConnection conn : to_remove) {
-			this.removePlayer(conn);
+	}
+
+
+	private void schedulePlayerRemoval(TCPClientConnection conn) {
+		synchronized (to_remove) {
+			if (to_remove.contains(conn) == false) {
+				to_remove.add(conn);
+			}
+		}
+	}
+	
+	
+	private void sendErrorToClient(DataOutputStream dos, int code, String error) throws IOException {
+		synchronized (dos) {
+			dos.writeByte(DataCommand.S2C_ERROR.getID());
+			dos.writeInt(code);
+			dos.writeUTF(error);
+			dos.writeByte(Statics.CHECK_BYTE);
 		}
 	}
 
@@ -349,6 +488,7 @@ public final class ServerMain implements ErrorHandler {
 		//todo TextFile.QuickAppend(Statics.CLIENT_ERROR_LOG, error, false);
 
 	}
+
 
 	public static void p(String s) {
 		System.out.println("Server: " + Dates.FormatDate(Calendar.getInstance().getTime(), Dates.UKDATE_FORMAT_WITH_TIME) + "-" + s);
@@ -369,7 +509,7 @@ public final class ServerMain implements ErrorHandler {
 
 	public void addConnection(TCPClientConnection conn) throws IOException {
 		synchronized (new_players) {
-			this.new_players.add(conn);
+			this.new_players.put(conn, null);
 		}
 	}
 

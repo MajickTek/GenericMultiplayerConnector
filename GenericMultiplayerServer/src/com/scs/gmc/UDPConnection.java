@@ -1,3 +1,21 @@
+/*
+ *  This file is part of GenericMultiplayerConnector.
+
+    GenericMultiplayerConnector is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    GenericMultiplayerConnector is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with GenericMultiplayerConnector.  If not, see <http://www.gnu.org/licenses/>.
+
+ */
+
 package com.scs.gmc;
 
 import java.io.ByteArrayInputStream;
@@ -91,17 +109,48 @@ public final class UDPConnection extends Thread {
 						bos.close();
 						break;
 
-					case C2S_RAW_DATA:
+					case C2S_UDP_RAW_DATA:
+						long time = dis.readLong();
 						gameid = dis.readUTF();
 						playerid = dis.readInt();
-						int i1 = dis.readInt();
-						int i2 = dis.readInt();
+						int code = dis.readInt();
+						int value = dis.readInt();
 						check = dis.readByte();
 						if (check != Statics.CHECK_BYTE) {
 							throw new IOException("Invalid check byte");
 						}
 
-						// Todo - Send it back out
+						DataArrayOutputStream daos = new DataArrayOutputStream();
+						daos.writeByte(DataCommand.S2C_UDP_RAW_DATA.getID());
+						daos.writeLong(time);
+						daos.writeInt(playerid);
+						daos.writeInt(code);
+						daos.writeInt(value);
+						daos.writeByte(Statics.CHECK_BYTE);
+						this.sendPacketToAll(gameid, daos.getByteArray(), playerid);
+						daos.close();
+						break;
+
+					case C2S_UDP_STRING_DATA:
+						time = dis.readLong();
+						gameid = dis.readUTF();
+						playerid = dis.readInt();
+						String data = dis.readUTF();
+						check = dis.readByte();
+						if (check != Statics.CHECK_BYTE) {
+							throw new IOException("Invalid check byte");
+						}
+
+						daos = new DataArrayOutputStream();
+						daos.writeByte(DataCommand.S2C_UDP_STRING_DATA.getID());
+						daos.writeLong(time);
+						daos.writeInt(playerid);
+						daos.writeUTF(data);
+						daos.writeByte(Statics.CHECK_BYTE);
+						this.sendPacketToAll(gameid, daos.getByteArray(), playerid);
+						daos.close();
+						break;
+
 					}
 
 				} catch (SocketTimeoutException ex) {
@@ -119,13 +168,14 @@ public final class UDPConnection extends Thread {
 	}
 
 
-	public void sendPacketToAll(String gameid, byte sendData[]) throws IOException {
-		synchronized (main.players_by_sck) {
-			Iterator<PlayerData> it = main.players_by_sck.values().iterator();
-			while (it.hasNext()) {
-				PlayerData pd = it.next();
-				if (pd.gameid.equalsIgnoreCase(gameid)) { // only the players in this game
-					if (pd != null && pd.address != null) { // Might be null if player's data hasn't been created
+	public void sendPacketToAll(String gameid, byte sendData[], int exceptplayerid) throws IOException {
+		ServerGame game = main.games.get(gameid);
+		if (game != null) {
+			synchronized (game.players_by_id) {
+				Iterator<PlayerData> it = game.players_by_id.values().iterator();
+				while (it.hasNext()) {
+					PlayerData pd = it.next();
+					if (pd.id != exceptplayerid && pd != null && pd.address != null) { // Might be null if player's data hasn't been created
 						DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, pd.address, pd.port);
 						this.socket.send(sendPacket);
 						//ServerMain.p("Sent UDP packet to " + pd.name);

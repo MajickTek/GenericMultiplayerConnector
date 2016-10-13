@@ -1,10 +1,26 @@
+https://bitbucket.org/SteveSmith16384/genericmultiplayerconnector
+
 TODO
-Expire games if no data for a long time
-Send id with udp packets so order can be checked
-Client validate data before sent to server
+add waitForStage to readme
+Run server on my droplet
+Write text ready for posting to forums
 
 
 LATER
-Send players scores
+Check if joined multiple times
+Check a name doesn't already exist in a game
+Add debug option to ClientConnecter constructor
+Throttle certain games/ips?
+Expire games if no data for a long time
+Send error codes - too many players
+Say how the game was won - no players left, winner
 Built in chat
 Group players by side
+Abandon game option
+
+
+WHERE TO POST
+javagaming.org
+/r/opensource
+
+

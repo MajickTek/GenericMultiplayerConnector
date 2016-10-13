@@ -1,3 +1,21 @@
+/*
+ *  This file is part of GenericMultiplayerConnector.
+
+    GenericMultiplayerConnector is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    GenericMultiplayerConnector is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with GenericMultiplayerConnector.  If not, see <http://www.gnu.org/licenses/>.
+
+ */
+
 package ssmith.lang;
 
 import java.text.ParseException;
@@ -8,8 +26,8 @@ import java.util.Calendar;
 public class Dates {
 
 	public static String UKDATE_FORMAT = "dd/MM/yyyy";
-	public static String UKDATE_FORMAT_WITH_TIME = "dd/MM/yyyy HH:mm";
-	public static String UKDATE_FORMAT2_WITH_TIME = "dd MMM yyyy HH:mm";
+	public static String UKDATE_FORMAT_WITH_TIME = "dd/MM/yyyy HH:mm:ss";
+	public static String UKDATE_FORMAT2_WITH_TIME = "dd MMM yyyy HH:mm:ss";
 	public static String TIME = "HH:mm";
 	public static String SQLDATE_FORMAT = "yyyy-MM-dd";
 	public static String SQLDATE_FORMAT_WITH_TIME = "yyyy-MM-dd HH:mm";

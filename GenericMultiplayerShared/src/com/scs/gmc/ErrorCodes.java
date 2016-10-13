@@ -18,25 +18,15 @@
 
 package com.scs.gmc;
 
-public interface IGameClient {
+public class ErrorCodes {
+	
+	public static final int MISC = 0;
+	public static final int TOO_MANY_PLAYERS = 1;
+	public static final int INVALID_NAME = 2;
+	public static final int INCOMPATIBLE_CODE_VERSION = 3;
+	public static final int IO_ERROR = 4;
 
-	void playerLeft(String name);
-	
-	void playerJoined(String name);
-	
-	void gameStarted();
-	
-	void gameEnded(String winner);
-	
-	void dataReceivedByTCP(int fromplayerid, int code, int value);
-	
-	void dataReceivedByUDP(long time, int fromplayerid, int code, int value);
-	
-	void dataReceivedByTCP(int fromplayerid, String data);
-	
-	void dataReceivedByUDP(long time, int fromplayerid, String data);
-	
-	void error(int error_code, String msg);
-	
-	void serverDown(long ms_since_response);
+	private ErrorCodes() {
+	}
+
 }
