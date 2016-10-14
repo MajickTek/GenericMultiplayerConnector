@@ -1,25 +1,15 @@
 https://bitbucket.org/SteveSmith16384/genericmultiplayerconnector
 
 TODO
-Run server on my droplet
+Tetris - start at rand position
 
 
 LATER
-StartupOptions - pass window owner
-Check if joined multiple times
-Check a name doesn't already exist in a game
 Add debug option to ClientConnecter constructor
 Throttle certain games/ips?
 Expire games if no data for a long time
-Send error codes - too many players
 Say how the game was won - no players left, winner
 Built in chat
 Group players by side
-Abandon game option
-
-
-WHERE TO POST
-javagaming.org
-/r/opensource
 
 

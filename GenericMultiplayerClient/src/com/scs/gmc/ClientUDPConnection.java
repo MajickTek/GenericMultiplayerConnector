@@ -80,7 +80,7 @@ public final class ClientUDPConnection extends Thread {
 						main.setLastServerResponseTime();
 						break;
 						
-					case S2C_UDP_RAW_DATA:
+					case S2C_UDP_KEYVALUE_DATA:
 						long time = dis.readLong();
 						int fromplayerid = dis.readInt();
 						int code = dis.readInt();
@@ -103,6 +103,20 @@ public final class ClientUDPConnection extends Thread {
 						}
 						
 						main.client.dataReceivedByUDP(time, fromplayerid, data);
+						break;
+						
+					case S2C_UDP_BYTEARRAY_DATA:
+						time = dis.readLong();
+						fromplayerid = dis.readInt();
+						int len = dis.readInt();
+						byte b[] = new byte[len];
+						dis.read(b);
+						check = dis.readByte();
+						if (check != Statics.CHECK_BYTE) {
+							throw new IOException("Invalid check byte");
+						}
+						
+						main.client.dataReceivedByUDP(time, fromplayerid, b);
 						break;
 						
 					default:

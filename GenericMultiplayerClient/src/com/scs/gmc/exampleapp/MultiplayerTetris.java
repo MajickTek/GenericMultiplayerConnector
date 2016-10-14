@@ -67,27 +67,51 @@ public class MultiplayerTetris extends JFrame {
 		sp.setBounds(canvas.getLocation().x + canvas.getWidth()+10, 10, this.getWidth() - canvas.getHeight(), this.getHeight()-40);
 		this.add(sp);
 
+		textarea.append("Use arrow keys to move the shape.\n");
+
 		connector = StartGameOptions.ShowOptionsAndConnect(canvas);
 		if (connector == null) {
 			// User pressed cancel or connection failed.
 			System.exit(0);
 		}
-		textarea.append("Connected to server\n");
-		textarea.append("Hello " + connector.getPlayerName() + "\n");
+		textarea.append("Connected to server.\n");
+		textarea.append("Hello " + connector.getPlayerName() + ".\n");
 
 		//canvas.setPosition(109, 20);
 		canvas.setFocusable(true);
 		canvas.addKeyListener(canvas);
 		canvas.requestFocusInWindow();
 
-		Thread canvasUpdateThread = new Thread(canvas, this.getClass().getSimpleName() + "_Thread");
-		canvasUpdateThread.start();
-	}
+		while (true) {
+			Thread canvasUpdateThread = new Thread(canvas, this.getClass().getSimpleName() + "_Thread");
+			canvasUpdateThread.start();
 
+			try {
+				canvasUpdateThread.join();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+			int dialogResult = JOptionPane.showConfirmDialog (null, "Play again?");
+			if(dialogResult != JOptionPane.YES_OPTION){
+				break;
+			}
+		}
+		if (connector != null) {
+			connector.disconnect();
+		}
+
+	}
+	
 
 	class MyPanel extends JPanel implements KeyListener, Runnable, IGameClient {
 
 		private static final long serialVersionUID = 1L;
+
+		private final int DROP_TIME = 100;
+		private final int NORMAL_TIME = 500;
+		private final int SPEEDUP_INC = 20;
 
 		private static final int EMPTY = 0;
 		private static final int FILLED = 1;
@@ -96,17 +120,14 @@ public class MultiplayerTetris extends JFrame {
 		private int row_cells;
 		private int col_cells;
 		private int[][] data;
-		private int xFigureOffset = 0;
-		private int yFigureOffset = 0;
+		private int x_offset = 0;
+		private int y_offset = 0;
 		private Shape current_shape;
 
 		private boolean game_over = false;
 
-		private final int LOWER_TIME = 100;
-		private final int NORMAL_TIME = 500;
 		private int timeInterval = NORMAL_TIME;
 		private int current_speedup = 0;
-		private final int SPEEDUP_INC = 20;
 
 		public MyPanel(int _cell_size, int _row_cells, int _col_cells) {
 			super();
@@ -117,7 +138,7 @@ public class MultiplayerTetris extends JFrame {
 
 			data = new int[row_cells][col_cells];
 			this.setBounds(10,10, _col_cells*_cell_size+1, _row_cells*_cell_size+1);
-			this.appendNewTFigure();
+			this.appendNewShape();
 		}
 
 
@@ -160,9 +181,9 @@ public class MultiplayerTetris extends JFrame {
 			drawGrid(g);
 		}
 
-		public void appendNewTFigure() {
-			xFigureOffset = 0;
-			yFigureOffset = 0;
+		public void appendNewShape() {
+			x_offset = 0;
+			y_offset = 0;
 			current_shape = new Shape();
 		}
 
@@ -197,7 +218,7 @@ public class MultiplayerTetris extends JFrame {
 			for (int i = 0; i < current_shape.getCurrentDataBlock().length; i++) {
 				for (int j = 0; j < current_shape.getCurrentDataBlock()[i].length; j++) {
 					if(current_shape.getCurrentDataBlock()[i][j] == FILLED) {
-						g.fillRect((xFigureOffset + j) * cell_size, (yFigureOffset + i) * cell_size, cell_size, cell_size);
+						g.fillRect((x_offset + j) * cell_size, (y_offset + i) * cell_size, cell_size, cell_size);
 					}
 				}
 			}
@@ -212,7 +233,7 @@ public class MultiplayerTetris extends JFrame {
 		}
 
 		public void keyPressed(KeyEvent e) {
-			if(!game_over) {
+			if (!game_over) {
 				if (e.getKeyCode() == KeyEvent.VK_Q) {
 					tryRotateLeft();
 				}
@@ -229,7 +250,7 @@ public class MultiplayerTetris extends JFrame {
 					tryRotateRight();
 				}
 				if (e.getKeyCode() == KeyEvent.VK_S || e.getKeyCode() == KeyEvent.VK_DOWN) {
-					timeInterval = LOWER_TIME;
+					timeInterval = DROP_TIME;
 				}
 			}
 		}
@@ -244,7 +265,7 @@ public class MultiplayerTetris extends JFrame {
 			boolean can = true;
 			for (int i = 0; i < fig_data.length; i++) {
 				for (int j = 0; j < fig_data[i].length; j++) {
-					if (fig_data[i][j]==FILLED) {
+					if (fig_data[i][j] == FILLED) {
 						if ((j+x_fig_offs >= col_cells)  || (j+x_fig_offs < 0) || (i+y_fig_offs >= row_cells)) {
 							can = false;
 						} else if (data[i+y_fig_offs][j+x_fig_offs] == FILLED) {
@@ -258,32 +279,32 @@ public class MultiplayerTetris extends JFrame {
 
 
 		private void tryMoveRight() {
-			if (canBeHere(xFigureOffset+1, yFigureOffset, current_shape.getCurrentDataBlock())) {
-				xFigureOffset++;
+			if (canBeHere(x_offset+1, y_offset, current_shape.getCurrentDataBlock())) {
+				x_offset++;
 			}
 			repaint();
 		}
 
 		private void tryMoveLeft() {
-			if (canBeHere(xFigureOffset-1, yFigureOffset, current_shape.getCurrentDataBlock())) {
-				xFigureOffset--;
+			if (canBeHere(x_offset-1, y_offset, current_shape.getCurrentDataBlock())) {
+				x_offset--;
 			}
 			repaint();
 		}
 
 		private void tryMoveDown() {
 			if (current_shape != null) {
-				if (canBeHere(xFigureOffset, yFigureOffset+1, current_shape.getCurrentDataBlock())) {
-					yFigureOffset++;
+				if (canBeHere(x_offset, y_offset+1, current_shape.getCurrentDataBlock())) {
+					y_offset++;
 				} else {
 					addCurrentDataBlockToMainData();
 					tryClearLines();
 					timeInterval = NORMAL_TIME;
 
-					xFigureOffset = 0;
-					yFigureOffset = 0;
+					x_offset = 0;
+					y_offset = 0;
 					current_shape = new Shape();
-					if(!canBeHere(xFigureOffset, yFigureOffset, current_shape.getCurrentDataBlock())) {
+					if(!canBeHere(x_offset, y_offset, current_shape.getCurrentDataBlock())) {
 						gameOver();
 					}
 				}
@@ -326,34 +347,27 @@ public class MultiplayerTetris extends JFrame {
 			for (int i = 0; i < current_shape.getCurrentDataBlock().length; i++) {
 				for (int j = 0; j < current_shape.getCurrentDataBlock()[i].length; j++) {
 					if(current_shape.getCurrentDataBlock()[i][j] == FILLED) {
-						data[i+yFigureOffset][j+xFigureOffset] = FILLED;
+						data[i+y_offset][j+x_offset] = FILLED;
 					}
 				}
 			}
 		}
 
 		private void tryRotateRight() {
-			//            for (int i = -1; i < 2; i++) {
-			//                if (canBeHere(xFigureOffset+i, yFigureOffset, currentTFigure.peekNextRight())) {
-			//                    currentTFigure.rotateRight();
-			//                    xFigureOffset += i;
-			//                    break;
-			//                }
-			//            }
-			if (canBeHere(xFigureOffset, yFigureOffset, current_shape.peekNextRight())) {
+			if (canBeHere(x_offset, y_offset, current_shape.peekNextRight())) {
 				current_shape.rotateRight();
-			} else if (canBeHere(xFigureOffset-1, yFigureOffset, current_shape.peekNextRight())) {
+			} else if (canBeHere(x_offset-1, y_offset, current_shape.peekNextRight())) {
 				current_shape.rotateRight();
-				xFigureOffset -= 1;
-			} else if (canBeHere(xFigureOffset+1, yFigureOffset, current_shape.peekNextRight())) {
+				x_offset -= 1;
+			} else if (canBeHere(x_offset+1, y_offset, current_shape.peekNextRight())) {
 				current_shape.rotateRight();
-				xFigureOffset += 1;
+				x_offset += 1;
 			}
 			repaint();
 		}
 
 		private void tryRotateLeft() {
-			if (canBeHere(xFigureOffset, yFigureOffset, current_shape.peekNextLeft())) {
+			if (canBeHere(x_offset, y_offset, current_shape.peekNextLeft())) {
 				current_shape.rotateLeft();
 			}
 			repaint();
@@ -386,10 +400,11 @@ public class MultiplayerTetris extends JFrame {
 		@Override
 		public void dataReceivedByTCP(int fromplayerid, int code, int value) {
 			if (code == CODE_LINE_CLEARED) {
+				// AN opponent has clear a row, so speed us up!
 				textarea.append("Opponent has cleared a line\n");
 				current_speedup += SPEEDUP_INC;
-				if (current_speedup > NORMAL_TIME-LOWER_TIME) {
-					current_speedup = NORMAL_TIME-LOWER_TIME;
+				if (current_speedup > NORMAL_TIME-DROP_TIME) {
+					current_speedup = NORMAL_TIME-DROP_TIME;
 				}
 			}
 		}
@@ -419,14 +434,26 @@ public class MultiplayerTetris extends JFrame {
 			textarea.append("Server seems to be down\n");
 		}
 
+
+		@Override
+		public void dataReceivedByTCP(int fromplayerid, byte[] data) {
+			
+		}
+
+
+		@Override
+		public void dataReceivedByUDP(long time, int fromplayerid, byte[] data) {
+			
+		}
+
 	}
 
 	class Shape {
 
 		private final Random rand = new Random();
 
-		private int currentDataBlockNumber = 0;
-		private int currentFigureNumber = 0;
+		private int curr_block_num = 0;
+		private int curr_shape_num = 0;
 
 		private int[][][][] data = {
 				{       // L FIGURE
@@ -524,42 +551,42 @@ public class MultiplayerTetris extends JFrame {
 		}
 
 		public Shape() {
-			currentFigureNumber = randInt(0, data.length-1);
+			curr_shape_num = randInt(0, data.length-1);
 		}
 
 		public int[][] peekNextRight() {
-			if(currentDataBlockNumber+1 < data[currentFigureNumber].length) {
-				return data[currentFigureNumber][currentDataBlockNumber+1];
+			if (curr_block_num+1 < data[curr_shape_num].length) {
+				return data[curr_shape_num][curr_block_num+1];
 			} else {
-				return data[currentFigureNumber][0];
+				return data[curr_shape_num][0];
 			}
 		}
 
 		public int[][] peekNextLeft() {
-			if(currentDataBlockNumber-1 >= 0) {
-				return data[currentFigureNumber][currentDataBlockNumber-1];
+			if (curr_block_num-1 >= 0) {
+				return data[curr_shape_num][curr_block_num-1];
 			} else {
-				return data[currentFigureNumber][data.length-1];
+				return data[curr_shape_num][data.length-1];
 			}
 		}
 
 		public int[][] getCurrentDataBlock() {
-			return data[currentFigureNumber][currentDataBlockNumber];
+			return data[curr_shape_num][curr_block_num];
 		}
 
 		public void rotateRight() {
-			if(currentDataBlockNumber+1 < data[currentFigureNumber].length) {
-				currentDataBlockNumber++;
+			if (curr_block_num+1 < data[curr_shape_num].length) {
+				curr_block_num++;
 			} else {
-				currentDataBlockNumber = 0;
+				curr_block_num = 0;
 			}
 		}
 
 		public void rotateLeft() {
-			if(currentDataBlockNumber-1 >= 0) {
-				currentDataBlockNumber--;
+			if (curr_block_num-1 >= 0) {
+				curr_block_num--;
 			} else {
-				currentDataBlockNumber = data[currentFigureNumber].length-1;
+				curr_block_num = data[curr_shape_num].length-1;
 			}
 		}
 	}

@@ -34,7 +34,11 @@ public interface IGameClient {
 	
 	void dataReceivedByTCP(int fromplayerid, String data);
 	
+	void dataReceivedByTCP(int fromplayerid, byte[] data);
+	
 	void dataReceivedByUDP(long time, int fromplayerid, String data);
+	
+	void dataReceivedByUDP(long time, int fromplayerid, byte[] data);
 	
 	void error(int error_code, String msg);
 	

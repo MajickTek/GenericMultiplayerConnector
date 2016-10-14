@@ -109,7 +109,7 @@ public final class UDPConnection extends Thread {
 						bos.close();
 						break;
 
-					case C2S_UDP_RAW_DATA:
+					case C2S_UDP_KEYVALUE_DATA:
 						long time = dis.readLong();
 						gameid = dis.readUTF();
 						playerid = dis.readInt();
@@ -121,7 +121,7 @@ public final class UDPConnection extends Thread {
 						}
 
 						DataArrayOutputStream daos = new DataArrayOutputStream();
-						daos.writeByte(DataCommand.S2C_UDP_RAW_DATA.getID());
+						daos.writeByte(DataCommand.S2C_UDP_KEYVALUE_DATA.getID());
 						daos.writeLong(time);
 						daos.writeInt(playerid);
 						daos.writeInt(code);
@@ -141,11 +141,36 @@ public final class UDPConnection extends Thread {
 							throw new IOException("Invalid check byte");
 						}
 
+						// Send it to all other clients
 						daos = new DataArrayOutputStream();
 						daos.writeByte(DataCommand.S2C_UDP_STRING_DATA.getID());
 						daos.writeLong(time);
 						daos.writeInt(playerid);
 						daos.writeUTF(data);
+						daos.writeByte(Statics.CHECK_BYTE);
+						this.sendPacketToAll(gameid, daos.getByteArray(), playerid);
+						daos.close();
+						break;
+
+					case C2S_UDP_BYTEARRAY_DATA:
+						time = dis.readLong();
+						gameid = dis.readUTF();
+						playerid = dis.readInt();
+						int len = dis.readInt();
+						byte ba[] = new byte[len];
+						dis.read(ba);
+						check = dis.readByte();
+						if (check != Statics.CHECK_BYTE) {
+							throw new IOException("Invalid check byte");
+						}
+
+						// Send it to all other clients
+						daos = new DataArrayOutputStream();
+						daos.writeByte(DataCommand.S2C_UDP_BYTEARRAY_DATA.getID());
+						daos.writeLong(time);
+						daos.writeInt(playerid);
+						daos.writeInt(ba.length);
+						daos.write(ba, 0, ba.length);
 						daos.writeByte(Statics.CHECK_BYTE);
 						this.sendPacketToAll(gameid, daos.getByteArray(), playerid);
 						daos.close();

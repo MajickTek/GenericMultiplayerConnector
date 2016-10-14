@@ -169,7 +169,7 @@ public final class ServerMain implements ErrorHandler {
 
 										// tell other players if min reached
 										if (game.players_by_id.size() >= game.min_players && game.game_started == false) {
-											p("Game " + game.gameid + " has started");
+											p("Game " + game.gameid + " has started with " + game.players_by_id.size() + " players");
 											game.game_started = true;
 											daos = new DataArrayOutputStream();
 											daos.writeByte(DataCommand.S2C_GAME_STARTED.getID());
@@ -195,7 +195,7 @@ public final class ServerMain implements ErrorHandler {
 								this.schedulePlayerRemoval(conn);
 								break;
 
-							case C2S_TCP_RAW_DATA:
+							case C2S_TCP_KEYVALUE_DATA:
 								int code = dis.readInt();
 								int value = dis.readInt();
 								check = dis.readByte();
@@ -212,6 +212,17 @@ public final class ServerMain implements ErrorHandler {
 									throw new IOException("Invalid check byte");
 								}
 								this.broadcastStringData(playerdata.id, data, games.get(playerdata.gameid));
+								break;
+
+							case C2S_TCP_BYTEARRAY_DATA:
+								int len = dis.readInt();
+								byte b[] = new byte[len];
+								dis.read(b);
+								check = dis.readByte();
+								if (check != Statics.CHECK_BYTE) {
+									throw new IOException("Invalid check byte");
+								}
+								this.broadcastByteArray(playerdata.id, b, games.get(playerdata.gameid));
 								break;
 
 							case C2S_OUT_OF_GAME:
@@ -397,7 +408,7 @@ public final class ServerMain implements ErrorHandler {
 
 	public void broadcastKeyValueData(int fromplayerid, int code, int value, ServerGame game) throws IOException {
 		DataArrayOutputStream dos = new DataArrayOutputStream();
-		dos.writeByte(DataCommand.S2C_TCP_RAW_DATA.getID());
+		dos.writeByte(DataCommand.S2C_TCP_KEYVALUE_DATA.getID());
 		dos.writeInt(fromplayerid);
 		dos.writeInt(code);
 		dos.writeInt(value);
@@ -413,6 +424,19 @@ public final class ServerMain implements ErrorHandler {
 		dos.writeByte(DataCommand.S2C_TCP_STRING_DATA.getID());
 		dos.writeInt(fromplayerid);
 		dos.writeUTF(data);
+		dos.writeByte(Statics.CHECK_BYTE);
+		this.sendTCPToAll(game, dos, fromplayerid);
+		dos.close();
+
+	}
+
+
+	public void broadcastByteArray(int fromplayerid, byte[] data, ServerGame game) throws IOException {
+		DataArrayOutputStream dos = new DataArrayOutputStream();
+		dos.writeByte(DataCommand.S2C_TCP_BYTEARRAY_DATA.getID());
+		dos.writeInt(fromplayerid);
+		dos.writeInt(data.length);
+		dos.write(data, 0, data.length);
 		dos.writeByte(Statics.CHECK_BYTE);
 		this.sendTCPToAll(game, dos, fromplayerid);
 		dos.close();

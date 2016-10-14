@@ -30,6 +30,10 @@ import com.scs.gmc.ConnectorMain.GameStage;
 import com.scs.gmc.IGameClient;
 import com.scs.gmc.Statics;
 
+/**
+ * This is an example of the simplest usage of GMC. 
+ *
+ */
 public class TestClient implements Runnable, IGameClient {
 
 	private static final int SCORE_CODE = 1;
@@ -75,14 +79,21 @@ public class TestClient implements Runnable, IGameClient {
 					p("Starting game");
 
 					// Play a very simple game where we add a random number to our score.
-					int score = 0;
+					byte score = 0;
+					// For testing sending byte arrays
+					byte b[] = new byte[2];
+					b[0] = SCORE_CODE;
 					while (connector.getGameStage() == GameStage.IN_PROGRESS) {
 						score += new Random().nextInt(10);
 
 						// Send our data to the server
+						b[1] = score;
+						connector.sendByteArrayByTCP(b);
+						connector.sendByteArrayByUDP(b);
 						connector.sendKeyValueDataByTCP(SCORE_CODE, score);
-						//main.sendBasicDataByUDP(SCORE_CODE, score);
-						//connector.sendStringDataByUDP("Hello from " + this.connector.getPlayerName());
+						connector.sendKeyValueDataByUDP(SCORE_CODE, score);
+						connector.sendStringDataByTCP("Hello from " + this.connector.getPlayerName());
+						connector.sendStringDataByUDP("Hello from " + this.connector.getPlayerName());
 
 						// Have we won?
 						if (score >= 100) {
@@ -109,13 +120,13 @@ public class TestClient implements Runnable, IGameClient {
 
 	@Override
 	public void playerJoined(String name) {
-		p("Player '" + name + "' joined.  There are now " + connector.getCurrentPlayers().length + " players");
+		p("Player '" + name + "' joined.  There are now " + connector.getCurrentPlayers().size() + " players");
 	}
 
 
 	@Override
 	public void playerLeft(String name) {
-		p("Player '" + name + "' left.  There are now " + connector.getCurrentPlayers().length + " players");
+		p("Player '" + name + "' left.  There are now " + connector.getCurrentPlayers().size() + " players");
 	}
 
 
@@ -132,14 +143,14 @@ public class TestClient implements Runnable, IGameClient {
 
 
 	@Override
-	public void dataReceivedByTCP(int fromplayerid, int code, int value) {
-		//p("Data received from player " + fromplayerid + ".  " + code + "=" + value);
+	public void dataReceivedByTCP(int fromplayerid, int key, int value) {
+		p("Data received from player " + fromplayerid + ".  " + key + "=" + value);
 	}
 
 
 	@Override
-	public void dataReceivedByUDP(long time, int fromplayerid, int code, int value) {
-		//p("Data received from player " + fromplayerid + ".  " + code + "=" +value);
+	public void dataReceivedByUDP(long time, int fromplayerid, int key, int value) {
+		p("Data received from player " + fromplayerid + ".  " + key + "=" +value);
 	}
 
 
@@ -152,6 +163,18 @@ public class TestClient implements Runnable, IGameClient {
 	@Override
 	public void dataReceivedByUDP(long time, int fromplayerid, String data) {
 		p("Data received from player " + fromplayerid + ".  " + data);
+	}
+
+
+	@Override
+	public void dataReceivedByTCP(int fromplayerid, byte[] data) {
+		p("Data: " + data[0] + ", " + data[1]);
+	}
+
+
+	@Override
+	public void dataReceivedByUDP(long time, int fromplayerid, byte[] data) {
+		p("Data: " + data[0] + ", " + data[1]);
 	}
 
 

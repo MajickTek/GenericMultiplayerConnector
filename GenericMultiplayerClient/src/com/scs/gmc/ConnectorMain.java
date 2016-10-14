@@ -20,10 +20,9 @@ package com.scs.gmc;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.Calendar;
-
-import javax.swing.JOptionPane;
+import java.util.HashMap;
+import java.util.Map;
 
 import ssmith.lang.DataArrayOutputStream;
 import ssmith.lang.Dates;
@@ -55,7 +54,8 @@ public class ConnectorMain implements Runnable {
 
 	// Game data
 	private int player_id = -1;
-	private volatile ClientPlayerData players[];
+	//private volatile ClientPlayerData players[];
+	public final Map<Integer, ClientPlayerData> players = new HashMap<Integer, ClientPlayerData>();
 	private volatile GameStage game_stage = GameStage.WAITING_FOR_PLAYERS;
 	private volatile int winner;
 	private volatile String winner_name;
@@ -155,7 +155,7 @@ public class ConnectorMain implements Runnable {
 		
 		// Reset values
 		player_id = -1;
-		players = null;
+		players.clear();
 		winner = -1;
 		winner_name = null;
 		game_stage = GameStage.WAITING_FOR_PLAYERS;
@@ -223,12 +223,12 @@ public class ConnectorMain implements Runnable {
 
 					case S2C_CURRENT_PLAYERS:
 						byte len = tcpconn.dis.readByte();
-						this.players = new ClientPlayerData[len];
+						this.players.clear();
 						for (int i=0 ; i<len ; i++) {
 							ClientPlayerData cpd = new ClientPlayerData();
 							cpd.id = tcpconn.dis.readInt();
 							cpd.name = tcpconn.dis.readUTF();
-							players[i] = cpd;
+							players.put(cpd.id, cpd);
 						}
 						check = tcpconn.dis.readByte();
 						if (check != Statics.CHECK_BYTE) {
@@ -281,7 +281,7 @@ public class ConnectorMain implements Runnable {
 						//ClientMain.p("Responded to ping");
 						break;
 
-					case S2C_TCP_RAW_DATA:
+					case S2C_TCP_KEYVALUE_DATA:
 						int fromplayerid = tcpconn.dis.readInt();
 						int code = tcpconn.dis.readInt();
 						int value = tcpconn.dis.readInt();
@@ -302,6 +302,19 @@ public class ConnectorMain implements Runnable {
 						}
 
 						client.dataReceivedByTCP(fromplayerid, data);
+						break;
+
+					case S2C_TCP_BYTEARRAY_DATA:
+						fromplayerid = tcpconn.dis.readInt();
+						int ln = tcpconn.dis.readInt();
+						byte b[] = new byte[ln];
+						tcpconn.dis.read(b);
+						check = tcpconn.dis.readByte();
+						if (check != Statics.CHECK_BYTE) {
+							throw new IOException("Invalid check byte");
+						}
+
+						client.dataReceivedByTCP(fromplayerid, b);
 						break;
 
 					case S2C_GAME_OVER:
@@ -375,7 +388,7 @@ public class ConnectorMain implements Runnable {
 		try {
 			//p("Sending basic data...");
 			synchronized (tcpconn.dos) {
-				tcpconn.dos.writeByte(DataCommand.C2S_TCP_RAW_DATA.getID());
+				tcpconn.dos.writeByte(DataCommand.C2S_TCP_KEYVALUE_DATA.getID());
 				tcpconn.dos.writeInt(code);
 				tcpconn.dos.writeInt(value);
 				tcpconn.dos.writeByte(Statics.CHECK_BYTE);
@@ -404,6 +417,21 @@ public class ConnectorMain implements Runnable {
 	}
 
 
+	public void sendByteArrayByTCP(byte[] data) {
+		try {
+			//p("Sending basic data...");
+			synchronized (tcpconn.dos) {
+				tcpconn.dos.writeByte(DataCommand.C2S_TCP_BYTEARRAY_DATA.getID());
+				tcpconn.dos.writeInt(data.length);
+				tcpconn.dos.write(data, 0, data.length);
+				tcpconn.dos.writeByte(Statics.CHECK_BYTE);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+
 	/**
 	 * Send data to all other players via UDP.
 	 * @param code The code to send
@@ -412,7 +440,7 @@ public class ConnectorMain implements Runnable {
 	public void sendKeyValueDataByUDP(int code, int value) {
 		try {
 			DataArrayOutputStream daos = new DataArrayOutputStream();
-			daos.writeByte(DataCommand.C2S_UDP_RAW_DATA.getID());
+			daos.writeByte(DataCommand.C2S_UDP_KEYVALUE_DATA.getID());
 			daos.writeLong(System.currentTimeMillis());
 			daos.writeUTF(gameid);
 			daos.writeInt(player_id);
@@ -439,6 +467,24 @@ public class ConnectorMain implements Runnable {
 			daos.writeUTF(gameid);
 			daos.writeInt(player_id);
 			daos.writeUTF(data);
+			daos.writeByte(Statics.CHECK_BYTE);
+			this.udpconn.sendPacket(daos.getByteArray());
+			daos.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+
+	public void sendByteArrayByUDP(byte b[]) {
+		try {
+			DataArrayOutputStream daos = new DataArrayOutputStream();
+			daos.writeByte(DataCommand.C2S_UDP_BYTEARRAY_DATA.getID());
+			daos.writeLong(System.currentTimeMillis());
+			daos.writeUTF(gameid);
+			daos.writeInt(player_id);
+			daos.writeInt(b.length);
+			daos.write(b, 0, b.length);
 			daos.writeByte(Statics.CHECK_BYTE);
 			this.udpconn.sendPacket(daos.getByteArray());
 			daos.close();
@@ -484,7 +530,7 @@ public class ConnectorMain implements Runnable {
 	
 	private void checkVersion() { 
 		try {
-			p("Checking version...");
+			//p("Checking version...");
 			synchronized (tcpconn.dos) {
 				tcpconn.dos.writeByte(DataCommand.C2S_VERSION.getID());
 				tcpconn.dos.writeInt(Statics.COMMS_VERSION);
@@ -648,11 +694,21 @@ public class ConnectorMain implements Runnable {
 	
 	
 	/**
-	 * Get an array of the current players.  Note that this is often recreated.
-	 * @return An array of the current players.
+	 * Get a map of the current players.  Note that this is often recreated.
+	 * @return A map of the current players.
 	 */
-	public ClientPlayerData[] getCurrentPlayers() {
+	public Map<Integer, ClientPlayerData> getCurrentPlayers() {
 		return this.players;
+	}
+	
+	
+	/**
+	 * Get a player's data by id.
+	 * @param id
+	 * @return The player's data.
+	 */
+	public ClientPlayerData getPlayerByID(int id) {
+		return this.players.get(id);
 	}
 
 	
@@ -661,10 +717,11 @@ public class ConnectorMain implements Runnable {
 	 */
 	public String getCurrentPlayersAsString() {
 		StringBuilder str = new StringBuilder();
-		for (ClientPlayerData pd : this.players) {
+		for (ClientPlayerData pd : this.players.values()) {
 			str.append(pd.toString() + "\n");
 			
 		}
 		return str.toString();
 	}
+	
 }
