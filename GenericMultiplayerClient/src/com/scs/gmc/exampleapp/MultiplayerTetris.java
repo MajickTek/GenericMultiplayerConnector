@@ -140,10 +140,13 @@ public class MultiplayerTetris extends JFrame {
 			textarea.append("Game ended - waiting for server\n");
 			connector.waitForStage(GameStage.FINISHED);
 			if (connector.areWeTheWinner()) {
+				textarea.append("You won!\n");
 				JOptionPane.showMessageDialog(this, "You won!");
 			} else {
+				textarea.append("The winner was " + connector.getWinnersName() + "\n");
 				JOptionPane.showMessageDialog(this, "The winner was " + connector.getWinnersName());
 			}
+			textarea.append("Please restart to play again.\n");
 		}
 
 

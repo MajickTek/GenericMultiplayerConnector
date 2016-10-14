@@ -21,7 +21,7 @@ There is also a simple MultiplayerTetris included in this project which utilises
 * Wait until "ConnectorMain.getGameStage() == GameStage.IN_PROGRESS", and then start your main game loop.
 * Send data to other clients with any of the ConnectorMain.sendKeyValue... or ConnectorMain.sendString... methods.
 * Receive data using any of the IGameClient.dataReceived... interface methods.
-* Call ConnectorMain.sendIAmTheWinner() if your client won the game, or call ConnectorMain,senOutOfGame() if your client is out of the game.
+* Call ConnectorMain.sendIAmTheWinner() if your client won the game, or call ConnectorMain,sendOutOfGame() if your client is out of the game.
 * End your game when "ConnectorMain..getGameStage() == GameStage.FINISHED".
 * Call ConnectorMain.waitForGameToFinish().
 * Get the winner's name with ConnectorMain.GetWinnersName().

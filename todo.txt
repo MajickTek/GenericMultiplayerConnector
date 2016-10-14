@@ -1,12 +1,11 @@
 https://bitbucket.org/SteveSmith16384/genericmultiplayerconnector
 
 TODO
-add waitForStage to readme
 Run server on my droplet
-Write text ready for posting to forums
 
 
 LATER
+StartupOptions - pass window owner
 Check if joined multiple times
 Check a name doesn't already exist in a game
 Add debug option to ClientConnecter constructor
