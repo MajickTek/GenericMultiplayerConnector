@@ -3,16 +3,6 @@
 ## Overview
 The Generic Multiplayer Connector (GMC) is a library to help turn any single-player game into a multi-player game by allowing clients to easily connect to a shared server and pass data to each other without having to worry about all the usual networking complications.  It uses a client/server model, and when a client sends out any data, it is automatically received by all other clients in the same game.  Clients also receive notifications of when a game has been won and who the winner was.
 
-
-[Why should I use GMC?](#why-should)
-[Example Code](#Example-Code)
-[Quickstart Guide](#quickstart)
-[More Detailed Guide](#more-detailed)
-[Public Server](#public-server)
-[Credits](#credits)
-
-
-
 ## Why should I use GMC?
 That's a very good question.  There are lots of other networking libraries out there.  However, the real advantage of GMC is that it requires minimal setup, configuration and handling: 
 
@@ -154,5 +144,3 @@ I run a basic server at 178.62.91.22 that can be used for inter-game communicati
 Designed and programmed by Stephen Carlyle-Smith (stephen.carlylesmith@googlemail.com)
 
 Licenced under GPLv3.
-
-
