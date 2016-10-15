@@ -88,6 +88,7 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 			if (connector.connect()) {
 				return connector;
 			} else {
+				// todo - ask to retry
 				JOptionPane.showMessageDialog(options, "Error connecting to server: " + connector.getLastError());
 				game_client.error(connector.getLastErrorCode(), connector.getLastError());
 			}

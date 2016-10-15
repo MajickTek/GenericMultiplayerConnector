@@ -83,6 +83,8 @@ public class MultiplayerTetris extends JFrame {
 		canvas.requestFocusInWindow();
 
 		while (true) {
+			canvas.restart();
+			
 			Thread canvasUpdateThread = new Thread(canvas, this.getClass().getSimpleName() + "_Thread");
 			canvasUpdateThread.start();
 
@@ -93,17 +95,18 @@ public class MultiplayerTetris extends JFrame {
 				e.printStackTrace();
 			}
 
-			int dialogResult = JOptionPane.showConfirmDialog (null, "Play again?");
+			int dialogResult = JOptionPane.showConfirmDialog (null, "Play again?", "Game Over", JOptionPane.YES_NO_OPTION);
 			if(dialogResult != JOptionPane.YES_OPTION){
 				break;
 			}
+			this.textarea.setText("");
 		}
 		if (connector != null) {
 			connector.disconnect();
 		}
-
+		System.exit(0);
 	}
-	
+
 
 	class MyPanel extends JPanel implements KeyListener, Runnable, IGameClient {
 
@@ -136,8 +139,15 @@ public class MultiplayerTetris extends JFrame {
 			row_cells = _row_cells;
 			col_cells = _col_cells;
 
-			data = new int[row_cells][col_cells];
+			restart();
 			this.setBounds(10,10, _col_cells*_cell_size+1, _row_cells*_cell_size+1);
+		}
+		
+		
+		public void restart() {
+			x_offset = 0;
+			y_offset = 0;
+			data = new int[row_cells][col_cells];
 			this.appendNewShape();
 		}
 
@@ -148,7 +158,7 @@ public class MultiplayerTetris extends JFrame {
 			textarea.append("Waiting for other players...\n");
 			connector.waitForStage(GameStage.IN_PROGRESS);
 			textarea.append("Game started!\n");
-
+			game_over = false;
 			while(!game_over && connector.getGameStage() == GameStage.IN_PROGRESS) {
 				try {
 					Thread.sleep(timeInterval - current_speedup);
@@ -175,7 +185,7 @@ public class MultiplayerTetris extends JFrame {
 		protected void paintComponent(Graphics g) {
 			drawBackground(g, Color.white);
 			drawData(g);
-			if(!game_over) {
+			if(!game_over) {// && connector.getGameStage() != GameStage.WAITING_FOR_PLAYERS) {
 				drawCurrentShape(g);
 			}
 			drawGrid(g);
@@ -215,10 +225,12 @@ public class MultiplayerTetris extends JFrame {
 
 		private void drawCurrentShape(Graphics g) {
 			g.setColor(Color.CYAN);
-			for (int i = 0; i < current_shape.getCurrentDataBlock().length; i++) {
-				for (int j = 0; j < current_shape.getCurrentDataBlock()[i].length; j++) {
-					if(current_shape.getCurrentDataBlock()[i][j] == FILLED) {
-						g.fillRect((x_offset + j) * cell_size, (y_offset + i) * cell_size, cell_size, cell_size);
+			if (current_shape != null) {
+				for (int i = 0; i < current_shape.getCurrentDataBlock().length; i++) {
+					for (int j = 0; j < current_shape.getCurrentDataBlock()[i].length; j++) {
+						if(current_shape.getCurrentDataBlock()[i][j] == FILLED) {
+							g.fillRect((x_offset + j) * cell_size, (y_offset + i) * cell_size, cell_size, cell_size);
+						}
 					}
 				}
 			}
@@ -437,13 +449,13 @@ public class MultiplayerTetris extends JFrame {
 
 		@Override
 		public void dataReceivedByTCP(int fromplayerid, byte[] data) {
-			
+
 		}
 
 
 		@Override
 		public void dataReceivedByUDP(long time, int fromplayerid, byte[] data) {
-			
+
 		}
 
 	}
