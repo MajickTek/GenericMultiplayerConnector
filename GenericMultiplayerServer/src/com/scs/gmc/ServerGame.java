@@ -28,6 +28,7 @@ public class ServerGame {
 	public boolean game_started = false;
 	public PlayerData winner = null;
 	
+	
 	public ServerGame(String _gameid, int _min_players, int _max_players) {
 		super();
 		

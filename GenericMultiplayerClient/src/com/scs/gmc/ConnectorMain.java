@@ -29,6 +29,10 @@ import ssmith.lang.Dates;
 import ssmith.lang.Functions;
 import ssmith.util.Interval;
 
+/**
+ * The main class for enabling communication between the GMC server and the game.
+ *
+ */
 public class ConnectorMain implements Runnable {
 
 	public enum GameStage {WAITING_FOR_PLAYERS, IN_PROGRESS, FINISHED}
@@ -92,8 +96,8 @@ public class ConnectorMain implements Runnable {
 		if (server == null || server.isEmpty()) {
 			throw new RuntimeException("Invalid server");
 		}
-		if (min_players < 2) {
-			throw new RuntimeException("A minimum of 2 players are required");
+		if (min_players < 1) {
+			throw new RuntimeException("A minimum of 1 player is required");
 		}
 		if (max_players > 0 && max_players < min_players) {
 			throw new RuntimeException("Invalid maximum players");
@@ -102,6 +106,11 @@ public class ConnectorMain implements Runnable {
 	}
 
 
+	public ConnectorMain(IGameClient _client, String _server, int _port, String _playername, String _gameid, int _min_players) {
+		this(_client, _server, _port, _playername, _gameid, _min_players, -1);
+	}
+	
+	
 	/**
 	 * Actually connect to the server.
 	 * @return A boolean indicating success.
@@ -126,7 +135,9 @@ public class ConnectorMain implements Runnable {
 
 			checkVersion();
 
-			new Thread(this, "GMCConnector_" + this.playername).start();;
+			Thread t = new Thread(this, "GMCConnector_" + this.playername);
+			t.setDaemon(true);
+			t.start();
 
 			return true;
 		} catch (IOException ex) {
@@ -549,7 +560,7 @@ public class ConnectorMain implements Runnable {
 		if (this.getGameStage() == GameStage.FINISHED) {
 			return this.player_id == winner;
 		} else {
-			throw new RuntimeException("Game not finished yet");
+			return false;//throw new RuntimeException("Game not finished yet");
 		}
 	}
 
@@ -580,7 +591,7 @@ public class ConnectorMain implements Runnable {
 		if (this.getGameStage() == GameStage.FINISHED) {
 			return this.winner_name;
 		} else {
-			throw new RuntimeException("Game not finished yet");
+			return "[Game unfinished]";//throw new RuntimeException("Game not at GameStage.FINISHED stage");
 		}
 	}
 

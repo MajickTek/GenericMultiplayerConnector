@@ -18,6 +18,10 @@
 
 package com.scs.gmc;
 
+/**
+ * Class to store data about all players in a game.
+ *
+ */
 public class ClientPlayerData {
 	
 	public String name;

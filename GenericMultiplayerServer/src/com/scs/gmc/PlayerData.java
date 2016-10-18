@@ -25,13 +25,14 @@ public class PlayerData {
 	private static int next_id=1;
 	public int id;
 
-	public ServerMain main;
-	public String name, gameid;
+	public final ServerMain main;
+	public String name;
+	public String gameid;
 
 	public long pingme_time, ping;
 	public boolean awaiting_ping_response;
 
-	public TCPClientConnection conn;
+	public final TCPClientConnection conn;
 	public InetAddress address;
 	public int port;
 	public boolean in_game = true; // Set to false when they're killed in the game

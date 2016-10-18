@@ -1,7 +1,7 @@
 # GENERIC MULTIPLAYER CONNECTOR
 
 ## Overview
-The Generic Multiplayer Connector (GMC) is a library to help turn any single-player game into a multi-player game by allowing clients to easily connect to a shared server and pass data to each other without having to worry about all the usual networking complications.  It uses a client/server model, and when a client sends out any data, it is automatically received by all other clients in the same game.  Clients also receive notifications of when a game has been won and who the winner was.
+The Generic Multiplayer Connector (GMC) is a library to help turn any single-player game into a realtime multi-player game by allowing clients to easily connect to a shared server and pass data to each other without having to worry about all the usual networking complications.  It uses a client/server model, and when a client sends out any data, it is automatically received by all other clients in the same game.  Clients also receive notifications of when a game has been won and who the winner was.
 
 ## Why should I use GMC?
 That's a very good question.  There are lots of other networking libraries out there.  However, the real advantage of GMC is that it requires minimal setup, configuration and handling: 
@@ -21,7 +21,7 @@ Running the server:-
 	java -jar GMCServer.jar
 ```
 
-All the following code is run on the clients.
+### All the following code is run on the clients.
 
 Connecting to the server:-
 ```java
@@ -85,7 +85,7 @@ These are step-by-step instructions on how to incorporate it into your project:-
 
 
 ## More Detailed Guide
-An example application called [TestClient.java](https://bitbucket.org/SteveSmith16384/genericmultiplayerconnector/src/fdf0c4436b7a41aa345f00c4de15cea4c999f69c/GenericMultiplayerClient/src/com/scs/gmc/exampleapp/TestClient.java?at=master&fileviewer=file-view-default) is in the source which shows the very simplist usage.  There is also a [MultiplayerTetris](https://bitbucket.org/SteveSmith16384/genericmultiplayerconnector/src/fdf0c4436b7a41aa345f00c4de15cea4c999f69c/GenericMultiplayerClient/src/com/scs/gmc/exampleapp/MultiplayerTetris.java?at=master&fileviewer=file-view-default) game included which utilises this library in a real game.
+An example application called [TestClient.java](https://bitbucket.org/SteveSmith16384/genericmultiplayerconnector/src/master/GenericMultiplayerClient/src/com/scs/gmc/exampleapp/TestClient.java?at=master&fileviewer=file-view-default) is in the source which shows the very simplist usage.  There is also a [Multiplayer Tetris](https://bitbucket.org/SteveSmith16384/genericmultiplayerconnector/src/master/GenericMultiplayerClient/src/com/scs/gmc/exampleapp/MultiplayerTetris.java?at=master&fileviewer=file-view-default) game included which utilises this library in a real game.
 
 To use the client library:-
 
@@ -137,6 +137,10 @@ Clients are are informed of data being received by methods in the IGameClient in
 
 ## Public Server
 I run a basic server at 178.62.91.22 that can be used for inter-game communication.  (See the source file Statics.java for the port).  Note that this server is not guaranteed to be available 24/7 forever though, and should not be used for anything mission-critical.
+
+
+## Games using this library
+As of writing this, the library is less than a week old.  Multiplayer Tetris is included in the library, where the game speeds up when an opponent completes a row.  I've also retrofitted a version of Tempest to be multi-player.  This can be found [here](https://github.com/SteveSmith16384/wbt-multiplayer).
 
 
 ### Credits

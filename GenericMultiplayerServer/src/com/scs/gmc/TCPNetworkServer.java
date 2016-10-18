@@ -24,6 +24,11 @@ import java.net.Socket;
 import ssmith.lang.ErrorHandler;
 import ssmith.net.TCPNetworkMultiServer3;
 
+/**
+ * 
+ * Thread class for collecting TCP connections.
+ *
+ */
 public final class TCPNetworkServer extends TCPNetworkMultiServer3 {
 
 	private ServerMain main;

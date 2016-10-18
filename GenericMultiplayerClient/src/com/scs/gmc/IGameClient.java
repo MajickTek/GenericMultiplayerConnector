@@ -18,6 +18,10 @@
 
 package com.scs.gmc;
 
+/**
+ * This interface needs to be implemented by a class from the game.
+ *
+ */
 public interface IGameClient {
 
 	void playerLeft(String name);

@@ -35,7 +35,15 @@ import com.scs.gmc.ConnectorMain.GameStage;
 import com.scs.gmc.IGameClient;
 import com.scs.gmc.StartGameOptions;
 
+/**
+ * A simple implementation of Tetris designed to show real-world usage of GMC.
+ *
+ */
 public class MultiplayerTetris extends JFrame {
+	
+	private static final int ROWS = 16;
+	private static final int COLS = 8;
+	
 
 	// Comms codes
 	public static final int CODE_LINE_CLEARED = 1;
@@ -43,7 +51,7 @@ public class MultiplayerTetris extends JFrame {
 	private static final long serialVersionUID = 1L;
 
 	private ConnectorMain connector; 
-	private MyPanel canvas = new MyPanel(20, 12, 8);
+	private MyPanel canvas = new MyPanel(20, ROWS, COLS);
 	private JTextArea textarea;
 
 	public static void main(String[] args) {
@@ -51,12 +59,13 @@ public class MultiplayerTetris extends JFrame {
 	}
 
 	public MultiplayerTetris() {
-		this.setSize(400,350);
+		this.setSize((2 * canvas.cell_size * canvas.col_cells) + 80, (canvas.cell_size * canvas.row_cells) + 80);
 		this.setTitle("Multiplayer Tetris");
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.setLocationRelativeTo(null);
 		this.setVisible(true);
 		this.setLayout(null);
+		this.setResizable(false);
 		this.add(canvas);
 
 		textarea = new JTextArea();
@@ -64,10 +73,10 @@ public class MultiplayerTetris extends JFrame {
 		textarea.setEditable(false);
 		textarea.setLineWrap(true);
 		JScrollPane sp = new JScrollPane(textarea, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-		sp.setBounds(canvas.getLocation().x + canvas.getWidth()+10, 10, this.getWidth() - canvas.getHeight(), this.getHeight()-40);
+		sp.setBounds(this.getWidth() / 2, 10, this.getWidth() - canvas.getWidth() - 80, this.getHeight()-80);
 		this.add(sp);
 
-		textarea.append("Use arrow keys to move the shape.\n");
+		textarea.append("Use arrow keys to move the shapes.\n");
 
 		connector = StartGameOptions.ShowOptionsAndConnect(canvas);
 		if (connector == null) {
@@ -91,8 +100,7 @@ public class MultiplayerTetris extends JFrame {
 			try {
 				canvasUpdateThread.join();
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				// Do nothing
 			}
 
 			int dialogResult = JOptionPane.showConfirmDialog (null, "Play again?", "Game Over", JOptionPane.YES_NO_OPTION);
@@ -114,7 +122,7 @@ public class MultiplayerTetris extends JFrame {
 
 		private final int DROP_TIME = 100;
 		private final int NORMAL_TIME = 500;
-		private final int SPEEDUP_INC = 20;
+		private final int SPEEDUP_INC = 40;
 
 		private static final int EMPTY = 0;
 		private static final int FILLED = 1;
@@ -148,6 +156,7 @@ public class MultiplayerTetris extends JFrame {
 			x_offset = 0;
 			y_offset = 0;
 			data = new int[row_cells][col_cells];
+			this.current_speedup = 0;
 			this.appendNewShape();
 		}
 
@@ -171,13 +180,12 @@ public class MultiplayerTetris extends JFrame {
 			textarea.append("Game ended - waiting for server\n");
 			connector.waitForStage(GameStage.FINISHED);
 			if (connector.areWeTheWinner()) {
-				textarea.append("You won!\n");
+				textarea.append("You have won!\n");
 				JOptionPane.showMessageDialog(this, "You won!");
 			} else {
 				textarea.append("The winner was " + connector.getWinnersName() + "\n");
 				JOptionPane.showMessageDialog(this, "The winner was " + connector.getWinnersName());
 			}
-			textarea.append("Please restart to play again.\n");
 		}
 
 
@@ -342,19 +350,27 @@ public class MultiplayerTetris extends JFrame {
 					buf_index--;
 				} else {
 					connector.sendKeyValueDataByTCP(CODE_LINE_CLEARED, 1);
+					// Slow us down
+					current_speedup -= SPEEDUP_INC;
+					if (current_speedup < 0) {
+						current_speedup = 0;
+					}
+
 				}
 			}
 			data = buf_data;
 		}
+		
 
 		private void gameOver() {
-			System.out.println("GAME IS OVER");
+			System.out.println("GAME OVER");
 			connector.sendOutOfGame();
 			game_over = true;
 			addCurrentDataBlockToMainData();
 			current_shape = null;
 		}
 
+		
 		private void addCurrentDataBlockToMainData() {
 			for (int i = 0; i < current_shape.getCurrentDataBlock().length; i++) {
 				for (int j = 0; j < current_shape.getCurrentDataBlock()[i].length; j++) {
@@ -365,6 +381,7 @@ public class MultiplayerTetris extends JFrame {
 			}
 		}
 
+		
 		private void tryRotateRight() {
 			if (canBeHere(x_offset, y_offset, current_shape.peekNextRight())) {
 				current_shape.rotateRight();

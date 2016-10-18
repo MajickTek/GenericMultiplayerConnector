@@ -26,6 +26,10 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 
+/**
+ * Class for handing UDP data.
+ *
+ */
 public final class ClientUDPConnection extends Thread {
 
 	private DatagramSocket socket;
@@ -141,11 +145,11 @@ public final class ClientUDPConnection extends Thread {
 		DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, address, port);
 		socket.send(sendPacket);
 	}
-
+/*
 
 	public void stopNow() {
 		this.interrupt();
 		this.stop_now = true;
 	}
-
+*/
 }

@@ -40,10 +40,11 @@ import ssmith.util.Interval;
 
 public final class ServerMain implements ErrorHandler {
 
-	public final Map<TCPClientConnection, PlayerData> players_by_sck = new HashMap<TCPClientConnection, PlayerData>();
-	public final Map<String, ServerGame> games = new HashMap<String, ServerGame>();
+	private final Map<TCPClientConnection, PlayerData> players_by_sck = new HashMap<TCPClientConnection, PlayerData>();
+	private final Map<String, ServerGame> games = new HashMap<String, ServerGame>();
+
 	private final Map<TCPClientConnection, PlayerData> new_players = new HashMap<TCPClientConnection, PlayerData>(); // temp list to avoid sync issues
-	private final List<TCPClientConnection> to_remove = new ArrayList<TCPClientConnection>(); 
+	private final List<TCPClientConnection> to_remove = new ArrayList<TCPClientConnection>();  // temp list to avoid sync issues
 
 	private final Interval alive_int = new Interval(15 * 1000);
 	private final UDPConnection udpconn_4_receiving;
@@ -73,6 +74,7 @@ public final class ServerMain implements ErrorHandler {
 		int port = Integer.parseInt(props.getProperty("port", ""+Statics.DEF_PORT));
 
 		TCPNetworkServer tcp_server = new TCPNetworkServer(this, port, this);
+		tcp_server.setDaemon(true);
 		tcp_server.start();
 
 		udpconn_4_receiving = new UDPConnection(this, port, this);
@@ -102,7 +104,7 @@ public final class ServerMain implements ErrorHandler {
 								int client_version = dis.readInt();
 								byte check = dis.readByte();
 								if (check != Statics.CHECK_BYTE) {
-									throw new IOException("Invalid check byte");
+									throw new IOException("Invalid check byte after receiving " + cmd);
 								}
 								//p("Got version " + client_version);
 
@@ -120,7 +122,7 @@ public final class ServerMain implements ErrorHandler {
 							case C2S_PING_RESPONSE:
 								check = dis.readByte();
 								if (check != Statics.CHECK_BYTE) {
-									throw new IOException("Invalid check byte");
+									throw new IOException("Invalid check byte after receiving " + cmd);
 								}
 
 								playerdata.ping = System.currentTimeMillis() - playerdata.pingme_time;
@@ -135,10 +137,15 @@ public final class ServerMain implements ErrorHandler {
 								int max_players = dis.readInt();
 								check = dis.readByte();
 								if (check != Statics.CHECK_BYTE) {
-									throw new IOException("Invalid check byte");
+									throw new IOException("Invalid check byte after receiving " + cmd);
 								}
 								if (name.length() > 0) { 
-									playerdata = new PlayerData(this, conn, name, gameid);
+									if (playerdata == null) {
+										playerdata = new PlayerData(this, conn, name, gameid);
+									} else {
+										playerdata.gameid = gameid;
+										playerdata.in_game = true;
+									}
 									p(name + " has joined game " + gameid);
 									synchronized (players_by_sck) {
 										new_players.put(conn, playerdata);
@@ -151,12 +158,15 @@ public final class ServerMain implements ErrorHandler {
 									}
 									// Check game exists
 									ServerGame game;
-									if (!games.containsKey(gameid)) {
-										game = new ServerGame(gameid, min_players, max_players); 
-										p("Created new game " + gameid);
-										games.put(gameid, game);
+									synchronized (games) {
+										if (!games.containsKey(gameid)) {
+											game = new ServerGame(gameid, min_players, max_players); 
+											p("Created new game " + gameid);
+											games.put(gameid, game);
+										}
+										game = games.get(gameid);
 									}
-									game = games.get(gameid);
+									synchronized (game.players_by_id) {
 									if (game.players_by_id.size() < game.max_players || game.max_players < 0) {
 										game.players_by_id.put(playerdata.id, playerdata);
 										this.sendCurrentPlayers(game);
@@ -179,6 +189,7 @@ public final class ServerMain implements ErrorHandler {
 									} else {
 										this.sendErrorToClient(dos, ErrorCodes.TOO_MANY_PLAYERS, "Too many players");
 									}
+									}
 								} else {
 									this.sendErrorToClient(dos, ErrorCodes.INVALID_NAME, "Invalid name: '" + name + "'");
 								}
@@ -188,7 +199,7 @@ public final class ServerMain implements ErrorHandler {
 							case C2S_DISCONNECTING:
 								check = dis.readByte();
 								if (check != Statics.CHECK_BYTE) {
-									throw new IOException("Invalid check byte");
+									throw new IOException("Invalid check byte after receiving " + cmd);
 								}
 
 								p("Player " + playerdata.name + " disconnecting.");
@@ -200,7 +211,7 @@ public final class ServerMain implements ErrorHandler {
 								int value = dis.readInt();
 								check = dis.readByte();
 								if (check != Statics.CHECK_BYTE) {
-									throw new IOException("Invalid check byte");
+									throw new IOException("Invalid check byte after receiving " + cmd);
 								}
 								this.broadcastKeyValueData(playerdata.id, code, value, games.get(playerdata.gameid));
 								break;
@@ -209,7 +220,7 @@ public final class ServerMain implements ErrorHandler {
 								String data = dis.readUTF();
 								check = dis.readByte();
 								if (check != Statics.CHECK_BYTE) {
-									throw new IOException("Invalid check byte");
+									throw new IOException("Invalid check byte after receiving " + cmd);
 								}
 								this.broadcastStringData(playerdata.id, data, games.get(playerdata.gameid));
 								break;
@@ -220,7 +231,7 @@ public final class ServerMain implements ErrorHandler {
 								dis.read(b);
 								check = dis.readByte();
 								if (check != Statics.CHECK_BYTE) {
-									throw new IOException("Invalid check byte");
+									throw new IOException("Invalid check byte after receiving " + cmd);
 								}
 								this.broadcastByteArray(playerdata.id, b, games.get(playerdata.gameid));
 								break;
@@ -228,17 +239,17 @@ public final class ServerMain implements ErrorHandler {
 							case C2S_OUT_OF_GAME:
 								check = dis.readByte();
 								if (check != Statics.CHECK_BYTE) {
-									throw new IOException("Invalid check byte");
+									throw new IOException("Invalid check byte after receiving " + cmd);
 								}
 								p("Player " + playerdata.name + " is out of the game.");
-								playerdata.in_game = false;
+								playerdata.in_game = false; // todo - send warning if already out of game
 								checkEnoughPlayers(playerdata.gameid);
 								break;
 
 							case C2S_WINNER:
 								check = dis.readByte();
 								if (check != Statics.CHECK_BYTE) {
-									throw new IOException("Invalid check byte");
+									throw new IOException("Invalid check byte after receiving " + cmd);
 								}
 								ServerGame game = games.get(playerdata.gameid);
 								if (game != null) {
@@ -368,7 +379,7 @@ public final class ServerMain implements ErrorHandler {
 				}
 				if (num_players <= 1) {
 					if (num_players == 1) {
-						this.sendGameOverAndRemoveGame(game, only_player);
+						this.sendGameOverAndRemoveGame(game, only_player); // Remove the game so when all players leave, there's still a winner
 						only_player.in_game = false;
 					} else if (num_players == 0) {
 						this.sendGameOverAndRemoveGame(game, null);
@@ -400,7 +411,9 @@ public final class ServerMain implements ErrorHandler {
 		this.sendTCPToAll(game, daos, -1);
 		daos.close();
 
-		this.games.remove(game.gameid);
+		synchronized (games) {
+			this.games.remove(game.gameid);
+		}
 		p("Removed game " + game.gameid);
 
 	}
@@ -447,8 +460,8 @@ public final class ServerMain implements ErrorHandler {
 	private void sendCurrentPlayers(ServerGame game) throws IOException {
 		DataArrayOutputStream daos = new DataArrayOutputStream();
 		daos.writeByte(DataCommand.S2C_CURRENT_PLAYERS.getID());
-		daos.writeByte(game.players_by_id.size());
 		synchronized (game.players_by_id) {
+		daos.writeByte(game.players_by_id.size());
 			Iterator<PlayerData> it_p = game.players_by_id.values().iterator();
 			while (it_p.hasNext()) {
 				PlayerData pd = it_p.next();
@@ -490,8 +503,8 @@ public final class ServerMain implements ErrorHandler {
 			}
 		}
 	}
-	
-	
+
+
 	private void sendErrorToClient(DataOutputStream dos, int code, String error) throws IOException {
 		synchronized (dos) {
 			dos.writeByte(DataCommand.S2C_ERROR.getID());
@@ -559,5 +572,9 @@ public final class ServerMain implements ErrorHandler {
 		System.exit(0);
 	}
 
+
+	public ServerGame getGame(String id) {
+		return this.games.get(id);
+	}
 
 }

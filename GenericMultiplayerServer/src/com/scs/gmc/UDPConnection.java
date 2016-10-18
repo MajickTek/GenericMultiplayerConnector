@@ -73,7 +73,7 @@ public final class UDPConnection extends Thread {
 						if (check != Statics.CHECK_BYTE) {
 							throw new IOException("Invalid check byte");
 						}
-						ServerGame game = main.games.get(gameid);
+						ServerGame game = main.getGame(gameid);
 						if (game != null) {
 							PlayerData player = game.players_by_id.get(playerid);
 							if (player != null) {
@@ -194,7 +194,7 @@ public final class UDPConnection extends Thread {
 
 
 	public void sendPacketToAll(String gameid, byte sendData[], int exceptplayerid) throws IOException {
-		ServerGame game = main.games.get(gameid);
+		ServerGame game = main.getGame(gameid);
 		if (game != null) {
 			synchronized (game.players_by_id) {
 				Iterator<PlayerData> it = game.players_by_id.values().iterator();

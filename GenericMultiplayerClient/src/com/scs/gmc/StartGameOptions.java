@@ -42,8 +42,13 @@ import javax.swing.SwingUtilities;
 
 import ssmith.awt.AWTFunctions;
 
+/**
+ * Helpful class which brings up a simple JFrame, for the user to enter details of which server to connect to.
+ *
+ */
 public class StartGameOptions extends JFrame implements ActionListener, WindowListener {
 
+	public static final String PUBLIC_IP = "178.62.91.22";
 	private static final long serialVersionUID = 1L;
 	
 	private static final String FILENAME = "user.properties";
@@ -56,7 +61,7 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 
 	public boolean OKClicked = false;
 
-	private JComboBox txt_server = new JComboBox(new DefaultComboBoxModel(new String[] {"178.62.91.22", "127.0.0.1"}));
+	private JComboBox txt_server = new JComboBox(new DefaultComboBoxModel(new String[] {PUBLIC_IP, "127.0.0.1"}));
 	private JTextField txt_port = new JTextField();
 	private JTextField txt_player_name = new JTextField();
 	private JTextField txt_game_code = new JTextField();
@@ -88,11 +93,14 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 			if (connector.connect()) {
 				return connector;
 			} else {
-				// todo - ask to retry
-				JOptionPane.showMessageDialog(options, "Error connecting to server: " + connector.getLastError());
 				game_client.error(connector.getLastErrorCode(), connector.getLastError());
+				int dialogResult = JOptionPane.showConfirmDialog (null, "Error connecting to server: " + connector.getLastError() + ".  Do you wish to retry?", "Error", JOptionPane.YES_NO_OPTION);
+				if(dialogResult != JOptionPane.YES_OPTION){
+					break;
+				}
 			}
 		}
+		return null;
 	}
 
 
@@ -103,11 +111,12 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 		this.setLayout(new GridLayout());
 
 		JPanel panel = new JPanel();
-		panel.setLayout(new GridLayout(7, 2));
-
+		
+			panel.setLayout(new GridLayout(7, 2));
+			
 		//panel.add(new JLabel("Version"));
 		//panel.add(new JLabel(Statics.CODE_VERSION + "/" + Statics.COMMS_VERSION));
-
+		
 		panel.add(new JLabel("Server IP"));
 		panel.add(txt_server);
 		panel.add(new JLabel("Port"));
@@ -202,8 +211,8 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 			return false;
 		}
 		try {
-			if (this.getMinPlayers() < 2) {
-				JOptionPane.showMessageDialog(this, "Please enter a minimum of 2 players.");
+			if (this.getMinPlayers() < 1) {
+				JOptionPane.showMessageDialog(this, "Please enter a minimum of 1 players.");
 				return false;
 			}
 		} catch (NumberFormatException ex) {

@@ -2,13 +2,14 @@ https://bitbucket.org/SteveSmith16384/genericmultiplayerconnector
 
 TODO
 Tetris - start at random position
-Readme - tetris link not pointing to latest version
 
 
 LATER
+Create more static StartGameOptions methods
+Store data to be sent to all new clients
+Mini web server showing current game details
 Add debug option to ClientConnecter constructor
 Throttle certain games/ips?
-Expire games if no data for a long time
 Say how the game was won - no players left, winner
 Built in chat
 Group players by side
