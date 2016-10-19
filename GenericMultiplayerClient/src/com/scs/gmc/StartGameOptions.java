@@ -178,8 +178,8 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		if (validateFields()) {
-			OKClicked = true;
 			saveProperties();
+			OKClicked = true;
 			this.setVisible(false);
 			synchronized (this) {
 				notify();
@@ -229,7 +229,7 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 	}
 
 
-	public void saveProperties() {
+	private void saveProperties() {
 		try {
 			Properties props = new Properties();
 			

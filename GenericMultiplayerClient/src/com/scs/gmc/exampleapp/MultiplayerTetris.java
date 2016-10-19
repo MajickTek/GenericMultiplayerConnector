@@ -138,7 +138,7 @@ public class MultiplayerTetris extends JFrame {
 		private boolean game_over = false;
 
 		private int timeInterval = NORMAL_TIME;
-		private int current_speedup = 0;
+		private int current_speedup = 0; // Gets subtracted from delay.  Todo - make atomic
 
 		public MyPanel(int _cell_size, int _row_cells, int _col_cells) {
 			super();
@@ -169,8 +169,12 @@ public class MultiplayerTetris extends JFrame {
 			textarea.append("Game started!\n");
 			game_over = false;
 			while(!game_over && connector.getGameStage() == GameStage.IN_PROGRESS) {
+				int len = timeInterval - current_speedup;
+				if (len < DROP_TIME) {
+					len = DROP_TIME;
+				}
 				try {
-					Thread.sleep(timeInterval - current_speedup);
+					Thread.sleep(len);
 				} catch (InterruptedException e) {}
 
 				tryMoveDown();
@@ -349,6 +353,7 @@ public class MultiplayerTetris extends JFrame {
 				if (!clear_this_line) {
 					buf_index--;
 				} else {
+					// We have cleared a row
 					connector.sendKeyValueDataByTCP(CODE_LINE_CLEARED, 1);
 					// Slow us down
 					current_speedup -= SPEEDUP_INC;
@@ -429,7 +434,7 @@ public class MultiplayerTetris extends JFrame {
 		@Override
 		public void dataReceivedByTCP(int fromplayerid, int code, int value) {
 			if (code == CODE_LINE_CLEARED) {
-				// AN opponent has clear a row, so speed us up!
+				// An opponent has clear a row, so speed us up!
 				textarea.append("Opponent has cleared a line\n");
 				current_speedup += SPEEDUP_INC;
 				if (current_speedup > NORMAL_TIME-DROP_TIME) {

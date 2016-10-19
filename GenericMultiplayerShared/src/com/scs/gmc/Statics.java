@@ -20,7 +20,7 @@ package com.scs.gmc;
 
 public class Statics {
 
-	public static final boolean DEBUG = true;
+	public static final boolean DEBUG = false; // todo - make option
 	public static final boolean CHECK_SERVER_IS_ALIVE = true;
 	
 	public static final int CODE_VERSION = 1;
