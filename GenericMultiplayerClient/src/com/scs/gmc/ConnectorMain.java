@@ -152,7 +152,9 @@ public class ConnectorMain implements Runnable {
 
 
 	/**
-	 * Join a game, which will be created if it doesn't exist.
+	 * Join a game, which will be created if it doesn't exist.  If the minimum number of players has now been reached, the
+	 * game stage will be set to IN_PROGRESS, and a message sent to all clients telling them the game has started.
+	 * 
 	 * @return A boolean indicating success.
 	 */
 	public boolean joinGame() {
@@ -359,8 +361,7 @@ public class ConnectorMain implements Runnable {
 			}
 			// Don't catch IOException here is we need it to drop out if we close the socket
 		} catch (Exception ex) {
-			//ex.printStackTrace();
-			//JOptionPane.showMessageDialog(null, "Error: " + ex, "Error", JOptionPane.ERROR_MESSAGE);
+			ex.printStackTrace();
 			client.error(0, ex.toString());
 			if (ex instanceof IOException == false) {
 				sendError(ex);
@@ -677,9 +678,9 @@ public class ConnectorMain implements Runnable {
 
 
 	public static void debug(String s) {
-		if (Statics.DEBUG) {
+		//if (Statics.DEBUG) {
 			System.out.println("Debug: " + Dates.FormatDate(Calendar.getInstance().getTime(), Dates.UKDATE_FORMAT_WITH_TIME) + "-" + s);
-		}
+		//}
 	}
 
 
@@ -733,6 +734,21 @@ public class ConnectorMain implements Runnable {
 			
 		}
 		return str.toString();
+	}
+	
+	
+	public String getServer() {
+		return server;
+	}
+	
+	
+	public int getPort() {
+		return port;
+	}
+	
+	
+	public String getGameID() {
+		return this.gameid;
 	}
 	
 }

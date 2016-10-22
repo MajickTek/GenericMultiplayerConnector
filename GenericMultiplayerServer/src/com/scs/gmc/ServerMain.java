@@ -49,12 +49,15 @@ public final class ServerMain implements ErrorHandler {
 	private final Interval alive_int = new Interval(15 * 1000);
 	private final UDPConnection udpconn_4_receiving;
 	private boolean stop = false;
+	public static boolean debug;
 
-	public ServerMain() throws IOException {
+	public ServerMain(boolean _debug) throws IOException {
 		super();
+		
+		debug = _debug;
 
 		p("Starting " + Statics.TITLE + " server v" + Statics.CODE_VERSION);
-		if (Statics.DEBUG) {
+		if (debug) {
 			p("####### DEBUG MODE! ############");
 		}
 
@@ -284,8 +287,8 @@ public final class ServerMain implements ErrorHandler {
 							playerdata.awaiting_ping_response = true;
 						}
 					} catch (IOException ex) {
-						System.err.println("Error sending to player " + playerdata.name);
-						ex.printStackTrace(); // Don't log it since there could be loads
+						System.err.println("Error sending to player " + playerdata.name + ".  They will be removed.");
+						//ex.printStackTrace(); // Don't log it since there could be loads
 						this.schedulePlayerRemoval(conn);
 					} catch (Exception ex) {
 						handleError(ex);
@@ -533,7 +536,7 @@ public final class ServerMain implements ErrorHandler {
 
 
 	public static void debug(String s) {
-		if (Statics.DEBUG) {
+		if (debug) {
 			System.out.println("Debug: " + Dates.FormatDate(Calendar.getInstance().getTime(), Dates.UKDATE_FORMAT_WITH_TIME) + "-" + s);
 		}
 	}
@@ -565,7 +568,7 @@ public final class ServerMain implements ErrorHandler {
 
 	public static void main(String[] args) {
 		try {
-			new ServerMain();
+			new ServerMain(true);
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}

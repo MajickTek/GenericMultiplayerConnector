@@ -33,6 +33,7 @@ import java.util.Properties;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -48,26 +49,30 @@ import ssmith.awt.AWTFunctions;
  */
 public class StartGameOptions extends JFrame implements ActionListener, WindowListener {
 
-	public static final String PUBLIC_IP = "178.62.91.22";
 	private static final long serialVersionUID = 1L;
-	
+
+	public static final String PUBLIC_IP = "178.62.91.22";
+
 	private static final String FILENAME = "user.properties";
+	// Code for properties
 	private static final String SERVER = "server";
 	private static final String PORT = "port";
 	private static final String NAME = "name";
 	private static final String GAME_CODE = "game_code";
 	private static final String MIN_PLAYERS = "min_players";
 	private static final String MAX_PLAYERS = "max_players";
+	private static final String OTHER_IPS = "other_ips";
 
 	public boolean OKClicked = false;
 
-	private JComboBox txt_server = new JComboBox(new DefaultComboBoxModel(new String[] {PUBLIC_IP, "127.0.0.1"}));
+	private JComboBox txt_server = new JComboBox(new DefaultComboBoxModel(new String[] {PUBLIC_IP}));
 	private JTextField txt_port = new JTextField();
 	private JTextField txt_player_name = new JTextField();
 	private JTextField txt_game_code = new JTextField();
 	private JTextField txt_min_players = new JTextField();
 	private JTextField txt_max_players = new JTextField();
 
+	
 	/**
 	 * Utility function.  This will bring up a simple form asking for the users details, then connect to the server.
 	 * If everything works, an instance of ConnectorMain will be returned, already connected.  If there is a connection problem, the user
@@ -75,9 +80,9 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 	 * @param game_client 
 	 * @return An instance of ConnectorMain that is already connected, or null if the user bailed.
 	 */
-	public static ConnectorMain ShowOptionsAndConnect(IGameClient game_client) {
+	public static ConnectorMain ShowOptionsAndConnect(IGameClient game_client, String title) {
 		while (true) {
-			StartGameOptions options = new StartGameOptions();
+			StartGameOptions options = new StartGameOptions(title);
 			options.setVisible(true);
 			synchronized (options) {
 				try {
@@ -89,10 +94,22 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 			if (options.OKClicked == false) {
 				return null;
 			}
-			ConnectorMain connector = new ConnectorMain(game_client, options.getServer().trim(), Statics.DEF_PORT, options.getPlayersName(), options.getGameCode(), options.getMinPlayers(), options.getMaxPlayers());
+			
+			JDialog dialog = new JDialog();
+			dialog.setTitle("Please Wait...");
+			JLabel label = new JLabel("Please wait, connecting to " + options.getServer() + "...");
+			dialog.setLocationRelativeTo(null);
+			dialog.add(label);
+			dialog.pack();
+			dialog.setModal(false);
+			dialog.setVisible(true);
+			
+			ConnectorMain connector = new ConnectorMain(game_client, options.getServer().trim(), options.getPort(), options.getPlayersName(), options.getGameCode(), options.getMinPlayers(), options.getMaxPlayers());
 			if (connector.connect()) {
+				dialog.setVisible(false);
 				return connector;
 			} else {
+				dialog.setVisible(false);
 				game_client.error(connector.getLastErrorCode(), connector.getLastError());
 				int dialogResult = JOptionPane.showConfirmDialog (null, "Error connecting to server: " + connector.getLastError() + ".  Do you wish to retry?", "Error", JOptionPane.YES_NO_OPTION);
 				if(dialogResult != JOptionPane.YES_OPTION){
@@ -104,19 +121,23 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 	}
 
 
-	public StartGameOptions() {
+	public StartGameOptions(String title) {
 		super();
 
-		this.setTitle("Options");
+		if (title != null) {
+			this.setTitle(title);
+		} else {
+			this.setTitle("Options");
+		}
 		this.setLayout(new GridLayout());
 
 		JPanel panel = new JPanel();
-		
-			panel.setLayout(new GridLayout(7, 2));
-			
+
+		panel.setLayout(new GridLayout(7, 2));
+
 		//panel.add(new JLabel("Version"));
 		//panel.add(new JLabel(Statics.CODE_VERSION + "/" + Statics.COMMS_VERSION));
-		
+
 		panel.add(new JLabel("Server IP"));
 		panel.add(txt_server);
 		panel.add(new JLabel("Port"));
@@ -158,6 +179,17 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 				this.txt_game_code.setText(props.getProperty(GAME_CODE));
 				this.txt_min_players.setText(props.getProperty(MIN_PLAYERS));
 				this.txt_max_players.setText(props.getProperty(MAX_PLAYERS));
+				String other_ips = props.getProperty(OTHER_IPS);
+				if (other_ips != null && other_ips.isEmpty() == false) {
+					String split[] = other_ips.split(",");
+					for (String s : split) {
+						if (s.trim().isEmpty() == false) {
+							if (!s.equalsIgnoreCase(PUBLIC_IP)) {
+								this.txt_server.addItem(s.trim());
+							}
+						}
+					}
+				}
 			} else {
 				this.txt_server.getModel().setSelectedItem("127.0.0.1");//"178.62.91.22");
 				this.txt_port.setText(""+Statics.DEF_PORT);
@@ -186,8 +218,8 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 			}
 		}
 	}
-	
-	
+
+
 	private boolean validateFields() {
 		if (this.getServer().length() == 0) {
 			JOptionPane.showMessageDialog(this, "Please enter a server name.");
@@ -232,14 +264,26 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 	private void saveProperties() {
 		try {
 			Properties props = new Properties();
-			
+
 			props.setProperty(SERVER, (String)this.txt_server.getSelectedItem());
 			props.setProperty(PORT, this.txt_port.getText());
 			props.setProperty(NAME, this.txt_player_name.getText());
 			props.setProperty(GAME_CODE, this.txt_game_code.getText());
 			props.setProperty(MIN_PLAYERS, this.txt_min_players.getText());
 			props.setProperty(MAX_PLAYERS, this.txt_max_players.getText());
-			
+
+			String other_ips = props.getProperty(OTHER_IPS);
+			String server = (String)this.txt_server.getSelectedItem();
+			if (other_ips != null) {
+			if (other_ips.indexOf(server) < 0 && !server.equalsIgnoreCase(PUBLIC_IP)) {
+				props.setProperty(OTHER_IPS, other_ips + "," + server);
+			}
+			} else {
+				if (!server.equalsIgnoreCase(PUBLIC_IP)) {
+					props.setProperty(OTHER_IPS, server);
+				}
+			}
+
 			File f = new File(FILENAME);
 			OutputStream out = new FileOutputStream( f );
 			props.store(out, "User properties");

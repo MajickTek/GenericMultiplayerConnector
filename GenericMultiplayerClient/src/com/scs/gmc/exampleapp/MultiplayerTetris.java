@@ -23,6 +23,7 @@ import java.awt.Graphics;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -40,10 +41,10 @@ import com.scs.gmc.StartGameOptions;
  *
  */
 public class MultiplayerTetris extends JFrame {
-	
+
 	private static final int ROWS = 16;
 	private static final int COLS = 8;
-	
+
 
 	// Comms codes
 	public static final int CODE_LINE_CLEARED = 1;
@@ -78,7 +79,7 @@ public class MultiplayerTetris extends JFrame {
 
 		textarea.append("Use arrow keys to move the shapes.\n");
 
-		connector = StartGameOptions.ShowOptionsAndConnect(canvas);
+		connector = StartGameOptions.ShowOptionsAndConnect(canvas, "Multiplayer Tetris");
 		if (connector == null) {
 			// User pressed cancel or connection failed.
 			System.exit(0);
@@ -93,7 +94,7 @@ public class MultiplayerTetris extends JFrame {
 
 		while (true) {
 			canvas.restart();
-			
+
 			Thread canvasUpdateThread = new Thread(canvas, this.getClass().getSimpleName() + "_Thread");
 			canvasUpdateThread.start();
 
@@ -138,7 +139,7 @@ public class MultiplayerTetris extends JFrame {
 		private boolean game_over = false;
 
 		private int timeInterval = NORMAL_TIME;
-		private int current_speedup = 0; // Gets subtracted from delay.  Todo - make atomic
+		private AtomicInteger current_speedup = new AtomicInteger(); // Gets subtracted from delay.
 
 		public MyPanel(int _cell_size, int _row_cells, int _col_cells) {
 			super();
@@ -150,13 +151,13 @@ public class MultiplayerTetris extends JFrame {
 			restart();
 			this.setBounds(10,10, _col_cells*_cell_size+1, _row_cells*_cell_size+1);
 		}
-		
-		
+
+
 		public void restart() {
 			x_offset = 0;
 			y_offset = 0;
 			data = new int[row_cells][col_cells];
-			this.current_speedup = 0;
+			this.current_speedup.set(0);
 			this.appendNewShape();
 		}
 
@@ -164,12 +165,14 @@ public class MultiplayerTetris extends JFrame {
 		@Override
 		public void run() {
 			connector.joinGame();
+			textarea.append("Connected to " + connector.getServer() + ":" + connector.getPort() + ".\n");
+			textarea.append("Joined game '" + connector.getGameID() + "'.\n");
 			textarea.append("Waiting for other players...\n");
 			connector.waitForStage(GameStage.IN_PROGRESS);
 			textarea.append("Game started!\n");
 			game_over = false;
 			while(!game_over && connector.getGameStage() == GameStage.IN_PROGRESS) {
-				int len = timeInterval - current_speedup;
+				int len = timeInterval - current_speedup.get();
 				if (len < DROP_TIME) {
 					len = DROP_TIME;
 				}
@@ -181,7 +184,7 @@ public class MultiplayerTetris extends JFrame {
 				repaint();
 			}
 
-			textarea.append("Game ended - waiting for server\n");
+			textarea.append("Game ended - waiting for server...\n");
 			connector.waitForStage(GameStage.FINISHED);
 			if (connector.areWeTheWinner()) {
 				textarea.append("You have won!\n");
@@ -356,16 +359,17 @@ public class MultiplayerTetris extends JFrame {
 					// We have cleared a row
 					connector.sendKeyValueDataByTCP(CODE_LINE_CLEARED, 1);
 					// Slow us down
-					current_speedup -= SPEEDUP_INC;
-					if (current_speedup < 0) {
-						current_speedup = 0;
+					synchronized (current_speedup) {
+						current_speedup.addAndGet(-SPEEDUP_INC);
+						if (current_speedup.get() < 0) {
+							current_speedup.set(0);
+						}
 					}
-
 				}
 			}
 			data = buf_data;
 		}
-		
+
 
 		private void gameOver() {
 			System.out.println("GAME OVER");
@@ -375,7 +379,7 @@ public class MultiplayerTetris extends JFrame {
 			current_shape = null;
 		}
 
-		
+
 		private void addCurrentDataBlockToMainData() {
 			for (int i = 0; i < current_shape.getCurrentDataBlock().length; i++) {
 				for (int j = 0; j < current_shape.getCurrentDataBlock()[i].length; j++) {
@@ -386,7 +390,7 @@ public class MultiplayerTetris extends JFrame {
 			}
 		}
 
-		
+
 		private void tryRotateRight() {
 			if (canBeHere(x_offset, y_offset, current_shape.peekNextRight())) {
 				current_shape.rotateRight();
@@ -436,9 +440,11 @@ public class MultiplayerTetris extends JFrame {
 			if (code == CODE_LINE_CLEARED) {
 				// An opponent has clear a row, so speed us up!
 				textarea.append("Opponent has cleared a line\n");
-				current_speedup += SPEEDUP_INC;
-				if (current_speedup > NORMAL_TIME-DROP_TIME) {
-					current_speedup = NORMAL_TIME-DROP_TIME;
+				synchronized (current_speedup) {
+					current_speedup.addAndGet(SPEEDUP_INC);
+					if (current_speedup.get() > NORMAL_TIME-DROP_TIME) {
+						current_speedup.set(NORMAL_TIME-DROP_TIME);
+					}
 				}
 			}
 		}

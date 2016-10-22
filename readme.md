@@ -47,7 +47,7 @@ Sending data to all other clients:-
 Receving data
 ```java
 	// 'game' is your class that implements the IGameClient interface.
-	game.dataReceivedByTCP(int fromplayerid, int code, int value)
+	game.dataReceivedByTCP(int fromplayerid, int code, int value);
 ```
 
 Damn, I've been killed in the game
@@ -108,7 +108,7 @@ There is also a helpful class called StartGameOptions.java which has methods for
 1. ConnectorMain.sendKeyValueDataByTCP(int code, int value);
 2. ConnectorMain.sendStringDataByTCP(String data);
 3. ConnectorMain.sendByteArrayByTCP(byte[] data);
-4. ConnectorMain.sendKeyValueDataByUDP(int code, int value)
+4. ConnectorMain.sendKeyValueDataByUDP(int code, int value);
 5. ConnectorMain.sendStringDataByUDP(String data);
 6. ConnectorMain.sendByteArrayByUDP(byte[] data);
 

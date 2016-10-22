@@ -18,7 +18,10 @@
 
 package com.scs.gmc;
 
-
+/**
+ * Commands for communication.  S2C = Server to client, C2S = Client to server.
+ *
+ */
 public enum DataCommand {
 
 	C2S_VERSION(1), 
