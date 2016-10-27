@@ -84,8 +84,9 @@ public class MultiplayerTetris extends JFrame {
 			// User pressed cancel or connection failed.
 			System.exit(0);
 		}
-		textarea.append("Connected to server.\n");
+		textarea.append("Connected to server " + connector.getServer() + ":" + connector.getPort() + "\n");
 		textarea.append("Hello " + connector.getPlayerName() + ".\n");
+		textarea.append("Joined game " + connector.getGameID() + ".\n");
 
 		//canvas.setPosition(109, 20);
 		canvas.setFocusable(true);

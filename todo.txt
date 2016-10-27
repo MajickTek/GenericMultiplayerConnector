@@ -1,10 +1,15 @@
 https://bitbucket.org/SteveSmith16384/genericmultiplayerconnector
 
 TODO
-Tetris - start at random position
+Show "connecting to server..."
+Add to Maven
+	Add debug param to server
+Tetris - start at middle
+
 
 
 LATER
+Tell player if they created the game
 Create more static StartGameOptions methods
 Store data to be sent to all new clients
 Mini web server showing current game details

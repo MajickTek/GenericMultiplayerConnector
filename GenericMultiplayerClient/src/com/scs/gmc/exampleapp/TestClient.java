@@ -120,13 +120,13 @@ public class TestClient implements Runnable, IGameClient {
 
 	@Override
 	public void playerJoined(String name) {
-		p("Player '" + name + "' joined.  There are now " + connector.getCurrentPlayers().size() + " players");
+		p("Player '" + name + "' joined.  There are now " + connector.getNumPlayers() + " players");
 	}
 
 
 	@Override
 	public void playerLeft(String name) {
-		p("Player '" + name + "' left.  There are now " + connector.getCurrentPlayers().size() + " players");
+		p("Player '" + name + "' left.  There are now " + connector.getNumPlayers() + " players");
 	}
 
 

@@ -50,7 +50,9 @@ Receving data
 	game.dataReceivedByTCP(int fromplayerid, int code, int value);
 ```
 
-Damn, I've been killed in the game
+The following functions are not required to be used, but if the winner of your game is either the last player standing or the firstv player to reach a certain point, the server will keep track of this for you if you use these functions.
+
+Damn, I've been killed in the game.  (If there's only one player left, they will be declared the winner).
 ```java
 	connector.sendOutOfGame();
 ```
@@ -140,7 +142,11 @@ I run a basic server at 178.62.91.22 that can be used for inter-game communicati
 
 
 ## Games using this library
-As of writing this, the library is less than a week old.  Multiplayer Tetris is included in the library, where the game speeds up when an opponent completes a row.  I've also retrofitted a version of Tempest to be multi-player.  This can be found [here](https://github.com/SteveSmith16384/wbt-multiplayer).
+Multiplayer Tetris is included in the library, where the game speeds up when an opponent completes a row.  
+
+I've also retrofitted a version of Tempest to be multi-player.  This can be found [here](https://github.com/SteveSmith16384/wbt-multiplayer).
+
+Also, a multiplayer maze game called [MazEvolution](https://bitbucket.org/SteveSmith16384/mazeevolution).
 
 
 ### Credits

@@ -58,8 +58,7 @@ public class ConnectorMain implements Runnable {
 
 	// Game data
 	private int player_id = -1;
-	//private volatile ClientPlayerData players[];
-	public final Map<Integer, ClientPlayerData> players = new HashMap<Integer, ClientPlayerData>();
+	private final Map<Integer, ClientPlayerData> players = new HashMap<Integer, ClientPlayerData>();
 	private volatile GameStage game_stage = GameStage.WAITING_FOR_PLAYERS;
 	private volatile int winner;
 	private volatile String winner_name;
@@ -507,7 +506,8 @@ public class ConnectorMain implements Runnable {
 
 
 	/**
-	 * Tell the server that we are out of the game, e.g. we have died and run out of lives.
+	 * Tell the server that we are out of the game, e.g. we have died and run out of lives.  If only one
+	 * player is left, that player is declared the winner by the server.
 	 * 
 	 */
 	public void sendOutOfGame() {
@@ -525,7 +525,7 @@ public class ConnectorMain implements Runnable {
 
 	/**
 	 * Tell the server that we are probably the winners as we have reached the end.
-	 * Note that the server will confirm this or otherwise, as multiple clients could send this at the same time.
+	 * Note that the server will confirm this (or otherwise), as multiple clients could send this at the same time.
 	 * 
 	 */
 	public void sendIAmTheWinner() {
@@ -709,9 +709,9 @@ public class ConnectorMain implements Runnable {
 	 * Get a map of the current players.  Note that this is often recreated.
 	 * @return A map of the current players.
 	 */
-	public Map<Integer, ClientPlayerData> getCurrentPlayers() {
+	/*public Map<Integer, ClientPlayerData> getCurrentPlayers() {
 		return this.players;
-	}
+	}*/
 	
 	
 	/**
@@ -751,4 +751,21 @@ public class ConnectorMain implements Runnable {
 		return this.gameid;
 	}
 	
+	
+	/**
+	 * If you want to select a player to be the main player, use this function.  Obviuously the "main" player may
+	 * change if players disconnect.
+	 * @return true if we're the "main" player.
+	 */
+	/*public boolean areWeFirstPlayer() {
+		synchronized (players) {
+		int id = this.players.keySet().iterator().next();
+		return id == this.player_id;
+		}
+	}*/
+	
+	
+	public int getNumPlayers() {
+		return this.players.size();
+	}
 }

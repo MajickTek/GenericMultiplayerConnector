@@ -330,7 +330,7 @@ public final class ServerMain implements ErrorHandler {
 				conn.close();
 			}
 		}
-		System.exit(0);
+		//System.exit(0);
 	}
 
 
