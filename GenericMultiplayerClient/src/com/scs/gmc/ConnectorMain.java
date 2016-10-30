@@ -14,6 +14,8 @@
     You should have received a copy of the GNU General Public License
     along with GenericMultiplayerConnector.  If not, see <http://www.gnu.org/licenses/>.
 
+    GenericMultiplayerConnector (C)Stephen Carlyle-Smith
+
  */
 
 package com.scs.gmc;
@@ -161,9 +163,9 @@ public class ConnectorMain implements Runnable {
 			throw new RuntimeException("Not connected!");
 		}
 		
-		if (this.game_stage == GameStage.IN_PROGRESS) {
+		/*if (this.game_stage == GameStage.IN_PROGRESS) {
 			p("Warning: joining a game before the last game has finished.");
-		}
+		}*/
 		
 		// Reset values
 		player_id = -1;
@@ -362,9 +364,9 @@ public class ConnectorMain implements Runnable {
 		} catch (Exception ex) {
 			ex.printStackTrace();
 			client.error(0, ex.toString());
-			if (ex instanceof IOException == false) {
+			/*if (ex instanceof IOException == false) {
 				sendError(ex);
-			}
+			}*/
 		}
 		internalDisconnect();
 
@@ -415,6 +417,9 @@ public class ConnectorMain implements Runnable {
 	 * @param data The string to send
 	 */
 	public void sendStringDataByTCP(String data) {
+		if (this.player_id <= 0) { // todo - add to all
+			throw new RuntimeException("You have not joined a game yet");
+		}
 		try {
 			//p("Sending basic data...");
 			synchronized (tcpconn.dos) {
@@ -597,7 +602,7 @@ public class ConnectorMain implements Runnable {
 	}
 
 
-	private void sendError(Exception ex) {
+	/*private void sendError(Exception ex) {
 		synchronized (tcpconn.dos) {
 			try {
 				tcpconn.dos.writeByte(DataCommand.C2S_SEND_ERROR.getID());
@@ -608,7 +613,7 @@ public class ConnectorMain implements Runnable {
 				e.printStackTrace();
 			}
 		}
-	}
+	}*/
 
 
 	private void sendExit() {

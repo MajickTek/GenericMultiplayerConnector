@@ -14,6 +14,8 @@
     You should have received a copy of the GNU General Public License
     along with GenericMultiplayerConnector.  If not, see <http://www.gnu.org/licenses/>.
 
+    GenericMultiplayerConnector (C)Stephen Carlyle-Smith
+
  */
 
 package com.scs.gmc.exampleapp;
@@ -79,7 +81,7 @@ public class MultiplayerTetris extends JFrame {
 
 		textarea.append("Use arrow keys to move the shapes.\n");
 
-		connector = StartGameOptions.ShowOptionsAndConnect(canvas, "Multiplayer Tetris");
+		connector = StartGameOptions.ShowOptionsAndConnect(canvas, "Multiplayer Tetris", null);
 		if (connector == null) {
 			// User pressed cancel or connection failed.
 			System.exit(0);

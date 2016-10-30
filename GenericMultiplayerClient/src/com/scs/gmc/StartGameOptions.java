@@ -14,6 +14,8 @@
     You should have received a copy of the GNU General Public License
     along with GenericMultiplayerConnector.  If not, see <http://www.gnu.org/licenses/>.
 
+    GenericMultiplayerConnector (C)Stephen Carlyle-Smith
+
  */
 
 package com.scs.gmc;
@@ -65,13 +67,14 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 
 	public boolean OKClicked = false;
 
-	private JComboBox txt_server = new JComboBox(new DefaultComboBoxModel(new String[] {PUBLIC_IP}));
-	private JTextField txt_port = new JTextField();
-	private JTextField txt_player_name = new JTextField();
-	private JTextField txt_game_code = new JTextField();
-	private JTextField txt_min_players = new JTextField();
-	private JTextField txt_max_players = new JTextField();
+	protected JComboBox txt_server = new JComboBox(new DefaultComboBoxModel(new String[] {PUBLIC_IP}));
+	protected JTextField txt_port = new JTextField();
+	protected JTextField txt_player_name = new JTextField();
+	protected JTextField txt_game_code = new JTextField();
+	protected JTextField txt_min_players = new JTextField();
+	protected JTextField txt_max_players = new JTextField();
 
+	protected JPanel panel;
 	
 	/**
 	 * Utility function.  This will bring up a simple form asking for the users details, then connect to the server.
@@ -80,9 +83,11 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 	 * @param game_client 
 	 * @return An instance of ConnectorMain that is already connected, or null if the user bailed.
 	 */
-	public static ConnectorMain ShowOptionsAndConnect(IGameClient game_client, String title) {
+	public static ConnectorMain ShowOptionsAndConnect(IGameClient game_client, String title, StartGameOptions options) {
 		while (true) {
-			StartGameOptions options = new StartGameOptions(title);
+			if (options == null) {
+				options = new StartGameOptions(title);
+			}
 			options.setVisible(true);
 			synchronized (options) {
 				try {
@@ -94,7 +99,7 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 			if (options.OKClicked == false) {
 				return null;
 			}
-			
+
 			JDialog dialog = new JDialog();
 			dialog.setTitle("Please Wait...");
 			JLabel label = new JLabel("Please wait, connecting to " + options.getServer() + "...");
@@ -103,7 +108,7 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 			dialog.pack();
 			dialog.setModal(false);
 			dialog.setVisible(true);
-			
+
 			ConnectorMain connector = new ConnectorMain(game_client, options.getServer().trim(), options.getPort(), options.getPlayersName(), options.getGameCode(), options.getMinPlayers(), options.getMaxPlayers());
 			if (connector.connect()) {
 				dialog.setVisible(false);
@@ -131,12 +136,9 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 		}
 		this.setLayout(new GridLayout());
 
-		JPanel panel = new JPanel();
+		panel = new JPanel();
 
 		panel.setLayout(new GridLayout(7, 2));
-
-		//panel.add(new JLabel("Version"));
-		//panel.add(new JLabel(Statics.CODE_VERSION + "/" + Statics.COMMS_VERSION));
 
 		panel.add(new JLabel("Server IP"));
 		panel.add(txt_server);
@@ -162,10 +164,17 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 		txt_server.setEditable(true);
 		this.setResizable(false);
 
-		//this.pack();
 		this.setSize(300, 200);
 		AWTFunctions.CentreWindow(this);
 
+		this.showDefaultValues();
+		
+		this.addWindowListener(this);
+
+	}
+
+	
+	protected void showDefaultValues() {
 		try {
 			Properties props = new Properties();
 			File f = new File(FILENAME);
@@ -202,10 +211,7 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 			e.printStackTrace();
 		}
 
-		this.addWindowListener(this);
-
 	}
-
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
@@ -275,9 +281,9 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 			String other_ips = props.getProperty(OTHER_IPS);
 			String server = (String)this.txt_server.getSelectedItem();
 			if (other_ips != null) {
-			if (other_ips.indexOf(server) < 0 && !server.equalsIgnoreCase(PUBLIC_IP)) {
-				props.setProperty(OTHER_IPS, other_ips + "," + server);
-			}
+				if (other_ips.indexOf(server) < 0 && !server.equalsIgnoreCase(PUBLIC_IP)) {
+					props.setProperty(OTHER_IPS, other_ips + "," + server);
+				}
 			} else {
 				if (!server.equalsIgnoreCase(PUBLIC_IP)) {
 					props.setProperty(OTHER_IPS, server);

@@ -36,7 +36,7 @@ public abstract class TCPNetworkMultiServer3 extends Thread {
 	    
 	    error_handler = _error_handler;
 	    
-        this.setDaemon(false);
+        this.setDaemon(true);
         sckListener = new ServerSocket(port, max_conns);
     }
 

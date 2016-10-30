@@ -14,6 +14,8 @@
     You should have received a copy of the GNU General Public License
     along with GenericMultiplayerConnector.  If not, see <http://www.gnu.org/licenses/>.
 
+    GenericMultiplayerConnector (C)Stephen Carlyle-Smith
+
  */
 
 package com.scs.gmc;
@@ -29,13 +31,13 @@ public class PlayerData {
 	public String name;
 	public String gameid;
 
-	public long pingme_time, ping;
+	public long ping_req_sent_time, ping;
 	public boolean awaiting_ping_response;
 
 	public final TCPClientConnection conn;
 	public InetAddress address;
 	public int port;
-	public boolean in_game = true; // Set to false when they're killed in the game
+	public boolean in_game = true; // Set to false when they're out of the game, e.g. killed by baddies
 
 
 	public PlayerData(ServerMain _main, TCPClientConnection _conn, String _name, String _gameid) {

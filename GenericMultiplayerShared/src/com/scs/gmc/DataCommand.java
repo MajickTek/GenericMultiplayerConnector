@@ -14,6 +14,8 @@
     You should have received a copy of the GNU General Public License
     along with GenericMultiplayerConnector.  If not, see <http://www.gnu.org/licenses/>.
 
+    GenericMultiplayerConnector (C)Stephen Carlyle-Smith
+
  */
 
 package com.scs.gmc;
@@ -47,7 +49,7 @@ public enum DataCommand {
 	S2C_UDP_STRING_DATA(21),
 	C2S_UDP_STRING_DATA(22),
 	C2S_JOIN_GAME(24), 
-	C2S_SEND_ERROR(39),
+	//C2S_SEND_ERROR(39),
 	S2C_NEW_PLAYER(40),
 	S2C_GAME_STARTED(41),
 	S2C_PLAYER_LEFT(42),

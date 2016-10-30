@@ -14,6 +14,8 @@
     You should have received a copy of the GNU General Public License
     along with GenericMultiplayerConnector.  If not, see <http://www.gnu.org/licenses/>.
 
+    GenericMultiplayerConnector (C)Stephen Carlyle-Smith
+
  */
 
 package com.scs.gmc;
@@ -53,7 +55,7 @@ public final class ServerMain implements ErrorHandler {
 
 	public ServerMain(boolean _debug) throws IOException {
 		super();
-		
+
 		debug = _debug;
 
 		p("Starting " + Statics.TITLE + " server v" + Statics.CODE_VERSION);
@@ -128,7 +130,7 @@ public final class ServerMain implements ErrorHandler {
 									throw new IOException("Invalid check byte after receiving " + cmd);
 								}
 
-								playerdata.ping = System.currentTimeMillis() - playerdata.pingme_time;
+								playerdata.ping = System.currentTimeMillis() - playerdata.ping_req_sent_time;
 								//ServerMain.p("Client ping time is " + playerdata.ping);
 								playerdata.awaiting_ping_response = false;
 								break;
@@ -170,28 +172,34 @@ public final class ServerMain implements ErrorHandler {
 										game = games.get(gameid);
 									}
 									synchronized (game.players_by_id) {
-									if (game.players_by_id.size() < game.max_players || game.max_players < 0) {
-										game.players_by_id.put(playerdata.id, playerdata);
-										this.sendCurrentPlayers(game);
-										// tell all other players new joiner
-										DataArrayOutputStream daos = new DataArrayOutputStream();
-										daos.writeByte(DataCommand.S2C_NEW_PLAYER.getID());
-										daos.writeUTF(playerdata.name);
-										daos.writeByte(Statics.CHECK_BYTE);
-										this.sendTCPToAll(game, daos, playerdata.id);
-
-										// tell other players if min reached
-										if (game.players_by_id.size() >= game.min_players && game.game_started == false) {
-											p("Game " + game.gameid + " has started with " + game.players_by_id.size() + " players");
-											game.game_started = true;
-											daos = new DataArrayOutputStream();
-											daos.writeByte(DataCommand.S2C_GAME_STARTED.getID());
+										if (game.players_by_id.size() < game.max_players || game.max_players < 0) {
+											game.players_by_id.put(playerdata.id, playerdata);
+											p("There are now " + game.players_by_id + " players in game " + gameid);
+											this.sendCurrentPlayers(game);
+											// tell all other players new joiner
+											DataArrayOutputStream daos = new DataArrayOutputStream();
+											daos.writeByte(DataCommand.S2C_NEW_PLAYER.getID());
+											daos.writeUTF(playerdata.name);
 											daos.writeByte(Statics.CHECK_BYTE);
-											this.sendTCPToAll(game, daos, -1);
+											this.sendTCPToAll(game, daos, playerdata.id);
+
+											// tell other players if min reached
+											if (game.players_by_id.size() >= game.min_players) {
+												daos = new DataArrayOutputStream();
+												daos.writeByte(DataCommand.S2C_GAME_STARTED.getID());
+												daos.writeByte(Statics.CHECK_BYTE);
+												if (game.game_started == false) {
+													p("Game " + game.gameid + " has started with " + game.players_by_id.size() + " players");
+													game.game_started = true;
+													this.sendTCPToAll(game, daos, -1);
+												} else {
+													// Only send to the new player so they know the game is in progress
+													dos.write(daos.getByteArray());
+												}
+											}
+										} else {
+											this.sendErrorToClient(dos, ErrorCodes.TOO_MANY_PLAYERS, "Too many players");
 										}
-									} else {
-										this.sendErrorToClient(dos, ErrorCodes.TOO_MANY_PLAYERS, "Too many players");
-									}
 									}
 								} else {
 									this.sendErrorToClient(dos, ErrorCodes.INVALID_NAME, "Invalid name: '" + name + "'");
@@ -225,6 +233,7 @@ public final class ServerMain implements ErrorHandler {
 								if (check != Statics.CHECK_BYTE) {
 									throw new IOException("Invalid check byte after receiving " + cmd);
 								}
+								// todo - check playerdata != null
 								this.broadcastStringData(playerdata.id, data, games.get(playerdata.gameid));
 								break;
 
@@ -264,10 +273,10 @@ public final class ServerMain implements ErrorHandler {
 								}
 								break;
 
-							case C2S_SEND_ERROR:
+							/*case C2S_SEND_ERROR:
 								this.decodeError(dis);
 								break;
-
+*/
 							default:
 								/*if (Statics.STRICT) {
 									throw new IOException("Unknown command: " + cmd);
@@ -278,13 +287,20 @@ public final class ServerMain implements ErrorHandler {
 							}
 						}
 
-						if (check_ping && playerdata != null && playerdata.awaiting_ping_response == false) {
-							synchronized (dos) { 
-								dos.writeByte(DataCommand.S2C_PING_ME.getID());
-								dos.writeByte(Statics.CHECK_BYTE);
+						// Send ping request?
+						if (check_ping && playerdata != null) {
+							if (playerdata.awaiting_ping_response == false) {
+								synchronized (dos) { 
+									dos.writeByte(DataCommand.S2C_PING_ME.getID());
+									dos.writeByte(Statics.CHECK_BYTE);
+								}
+								playerdata.ping_req_sent_time = System.currentTimeMillis();
+								playerdata.awaiting_ping_response = true;
+							} else {
+								if (System.currentTimeMillis() - Statics.SERVER_DIED_DURATION > playerdata.ping_req_sent_time) {
+									this.schedulePlayerRemoval(conn);
+								}
 							}
-							playerdata.pingme_time = System.currentTimeMillis();
-							playerdata.awaiting_ping_response = true;
 						}
 					} catch (IOException ex) {
 						System.err.println("Error sending to player " + playerdata.name + ".  They will be removed.");
@@ -315,9 +331,6 @@ public final class ServerMain implements ErrorHandler {
 				Functions.delay(200);
 			} catch (Exception ex) {
 				handleError(ex);
-				/*if (Statics.STRICT) {
-					System.exit(0);				
-				}*/
 			}
 		}
 		this.udpconn_4_receiving.stopNow();
@@ -330,10 +343,15 @@ public final class ServerMain implements ErrorHandler {
 				conn.close();
 			}
 		}
-		//System.exit(0);
 	}
 
 
+	/**
+	 * Do not call this directly, use schedulePlayerRemoval().
+	 * 
+	 * @param conn
+	 * @throws IOException
+	 */
 	private void removePlayer(TCPClientConnection conn) throws IOException {
 		synchronized (players_by_sck) {
 			PlayerData player = this.players_by_sck.get(conn);
@@ -464,7 +482,7 @@ public final class ServerMain implements ErrorHandler {
 		DataArrayOutputStream daos = new DataArrayOutputStream();
 		daos.writeByte(DataCommand.S2C_CURRENT_PLAYERS.getID());
 		synchronized (game.players_by_id) {
-		daos.writeByte(game.players_by_id.size());
+			daos.writeByte(game.players_by_id.size());
 			Iterator<PlayerData> it_p = game.players_by_id.values().iterator();
 			while (it_p.hasNext()) {
 				PlayerData pd = it_p.next();
@@ -507,7 +525,15 @@ public final class ServerMain implements ErrorHandler {
 		}
 	}
 
-
+	
+	/**
+	 * This will send (and cause) an exception in the client, typically with a reason they can't join.
+	 * 
+	 * @param dos
+	 * @param code
+	 * @param error
+	 * @throws IOException
+	 */
 	private void sendErrorToClient(DataOutputStream dos, int code, String error) throws IOException {
 		synchronized (dos) {
 			dos.writeByte(DataCommand.S2C_ERROR.getID());
