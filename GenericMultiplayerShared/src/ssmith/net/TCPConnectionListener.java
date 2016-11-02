@@ -24,20 +24,22 @@ import java.net.Socket;
 
 import ssmith.lang.ErrorHandler;
 
-public abstract class TCPNetworkMultiServer3 extends Thread {
+public final class TCPConnectionListener extends Thread {
 
     private ServerSocket sckListener;
     public boolean debug = false;
     private static volatile boolean stopNow = false;
     private ErrorHandler error_handler;
+    private IConnectionCollector collector;
 
-    public TCPNetworkMultiServer3(int port, int max_conns, ErrorHandler _error_handler) throws IOException {
-	    super("TCPNetworkMultiServer3");
+    public TCPConnectionListener(int port, int backlog, IConnectionCollector _collector, ErrorHandler _error_handler) throws IOException {
+	    super(TCPConnectionListener.class.getSimpleName());
 	    
+	    collector = _collector;
 	    error_handler = _error_handler;
 	    
         this.setDaemon(true);
-        sckListener = new ServerSocket(port, max_conns);
+        sckListener = new ServerSocket(port, backlog);
     }
 
     
@@ -55,19 +57,15 @@ public abstract class TCPNetworkMultiServer3 extends Thread {
         }
     }
 
-    /**
-     * Override this method when a connection is made
-     */
+
     public void createConnectionPre(Socket sck) throws IOException {
-    	createConnection(sck);
+    	//createConnection(sck);
+    	collector.newConnection(sck);
         System.out.println("Connection made from " + sck.getInetAddress().toString() + ".");//  There are now " + num_conns + " users connected.");
     }
 
 
-    public abstract void createConnection(Socket sck) throws IOException;
-
-
-    public static void StopListening() {
+    public static void StopListening() { // todo - use IConnectionCollector
         stopNow = true;
     }
 

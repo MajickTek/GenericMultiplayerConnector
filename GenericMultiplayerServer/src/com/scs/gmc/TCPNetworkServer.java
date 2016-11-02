@@ -19,7 +19,7 @@
  */
 
 package com.scs.gmc;
-
+/*
 import java.io.IOException;
 import java.net.Socket;
 
@@ -30,7 +30,7 @@ import ssmith.net.TCPNetworkMultiServer3;
  * 
  * Thread class for collecting TCP connections.
  *
- */
+ *//*
 public final class TCPNetworkServer extends TCPNetworkMultiServer3 {
 
 	private ServerMain main;
@@ -44,8 +44,9 @@ public final class TCPNetworkServer extends TCPNetworkMultiServer3 {
 
 	@Override
 	public void createConnection(Socket sck) throws IOException {
-		TCPClientConnection conn = new TCPClientConnection(this, sck);
+		TCPClientConnection conn = new TCPClientConnection(sck, main);
 		main.addConnection(conn);
 	}
 
 }
+*/

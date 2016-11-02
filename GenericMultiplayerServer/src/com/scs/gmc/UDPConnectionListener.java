@@ -31,7 +31,7 @@ import java.util.Iterator;
 import ssmith.lang.DataArrayOutputStream;
 import ssmith.lang.ErrorHandler;
 
-public final class UDPConnection extends Thread {
+public final class UDPConnectionListener extends Thread {
 
 	private DatagramSocket socket;
 	private volatile boolean stop_now = false;
@@ -40,8 +40,8 @@ public final class UDPConnection extends Thread {
 
 	public static int next_packet_id = 0;
 
-	public UDPConnection(ServerMain _main, int port, ErrorHandler _handler) throws IOException {
-		super("UDPConnection_Thread");
+	public UDPConnectionListener(ServerMain _main, int port, ErrorHandler _handler) throws IOException {
+		super(UDPConnectionListener.class.getSimpleName());
 
 		main = _main;
 		error_handler = _handler;

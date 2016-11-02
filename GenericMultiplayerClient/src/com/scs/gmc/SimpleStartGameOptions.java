@@ -13,7 +13,7 @@ public class SimpleStartGameOptions extends StartGameOptions {
 
 	private static final long serialVersionUID = 1L;
 
-	public SimpleStartGameOptions(String title) {
+	public SimpleStartGameOptions(String title, int min_players, int max_players) {
 		super(title);
 
 		this.remove(panel); // Clear all stuff
@@ -41,6 +41,8 @@ public class SimpleStartGameOptions extends StartGameOptions {
 
 		txt_server.setEditable(true);
 		this.showDefaultValues();
+		this.txt_min_players.setText(min_players+"");
+		this.txt_max_players.setText(max_players+"");
 		this.setResizable(false);
 
 		this.setSize(300, 200);

@@ -250,8 +250,8 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 		}
 		try {
 			if (this.getMinPlayers() < 1) {
-				JOptionPane.showMessageDialog(this, "Please enter a minimum of 1 players.");
-				return false;
+				/*JOptionPane.showMessageDialog(this, "Please enter a minimum of 1 players."); No, since we might never want to end
+				return false;*/
 			}
 		} catch (NumberFormatException ex) {
 			JOptionPane.showMessageDialog(this, "Please enter a valid minimum players.");

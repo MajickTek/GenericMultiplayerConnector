@@ -28,19 +28,19 @@ public class PlayerData {
 	public int id;
 
 	public final ServerMain main;
-	public String name;
-	public String gameid;
 
 	public long ping_req_sent_time, ping;
 	public boolean awaiting_ping_response;
-
 	public final TCPClientConnection conn;
 	public InetAddress address;
 	public int port;
+	
+	public String name;
+	public String gameid;
 	public boolean in_game = true; // Set to false when they're out of the game, e.g. killed by baddies
 
 
-	public PlayerData(ServerMain _main, TCPClientConnection _conn, String _name, String _gameid) {
+	public PlayerData(ServerMain _main, TCPClientConnection _conn) {//, String _name, String _gameid) {
 		super();
 
 		synchronized (_main) {
@@ -52,8 +52,14 @@ public class PlayerData {
 		}
 		main = _main;
 		conn = _conn;
-		name = _name;
-		gameid = _gameid;
+		//name = _name;
+		//gameid = _gameid;
 
+	}
+	
+	
+	@Override
+	public String toString() {
+		return "PlayerData:" + this.id + " (" + name + ")";
 	}
 }

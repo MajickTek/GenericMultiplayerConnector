@@ -97,9 +97,9 @@ public class ConnectorMain implements Runnable {
 		if (server == null || server.isEmpty()) {
 			throw new RuntimeException("Invalid server");
 		}
-		if (min_players < 1) {
+		/*if (min_players < 1) {
 			throw new RuntimeException("A minimum of 1 player is required");
-		}
+		}*/
 		if (max_players > 0 && max_players < min_players) {
 			throw new RuntimeException("Invalid maximum players");
 		}
@@ -398,6 +398,9 @@ public class ConnectorMain implements Runnable {
 	 * @param value The value.
 	 */
 	public void sendKeyValueDataByTCP(int code, int value) {
+		if (this.player_id <= 0) {
+			throw new RuntimeException("You have not joined a game yet");
+		}
 		try {
 			//p("Sending basic data...");
 			synchronized (tcpconn.dos) {
@@ -417,7 +420,7 @@ public class ConnectorMain implements Runnable {
 	 * @param data The string to send
 	 */
 	public void sendStringDataByTCP(String data) {
-		if (this.player_id <= 0) { // todo - add to all
+		if (this.player_id <= 0) {
 			throw new RuntimeException("You have not joined a game yet");
 		}
 		try {
@@ -434,6 +437,9 @@ public class ConnectorMain implements Runnable {
 
 
 	public void sendByteArrayByTCP(byte[] data) {
+		if (this.player_id <= 0) {
+			throw new RuntimeException("You have not joined a game yet");
+		}
 		try {
 			//p("Sending basic data...");
 			synchronized (tcpconn.dos) {
@@ -454,6 +460,9 @@ public class ConnectorMain implements Runnable {
 	 * @param value The value.
 	 */
 	public void sendKeyValueDataByUDP(int code, int value) {
+		if (this.player_id <= 0) {
+			throw new RuntimeException("You have not joined a game yet");
+		}
 		try {
 			DataArrayOutputStream daos = new DataArrayOutputStream();
 			daos.writeByte(DataCommand.C2S_UDP_KEYVALUE_DATA.getID());
@@ -476,6 +485,9 @@ public class ConnectorMain implements Runnable {
 	 * @param data The string to send
 	 */
 	public void sendStringDataByUDP(String data) {
+		if (this.player_id <= 0) {
+			throw new RuntimeException("You have not joined a game yet");
+		}
 		try {
 			DataArrayOutputStream daos = new DataArrayOutputStream();
 			daos.writeByte(DataCommand.C2S_UDP_STRING_DATA.getID());
@@ -493,6 +505,9 @@ public class ConnectorMain implements Runnable {
 
 
 	public void sendByteArrayByUDP(byte b[]) {
+		if (this.player_id <= 0) {
+			throw new RuntimeException("You have not joined a game yet");
+		}
 		try {
 			DataArrayOutputStream daos = new DataArrayOutputStream();
 			daos.writeByte(DataCommand.C2S_UDP_BYTEARRAY_DATA.getID());
@@ -516,6 +531,9 @@ public class ConnectorMain implements Runnable {
 	 * 
 	 */
 	public void sendOutOfGame() {
+		if (this.player_id <= 0) {
+			throw new RuntimeException("You have not joined a game yet");
+		}
 		try {
 			synchronized (tcpconn.dos) {
 				tcpconn.dos.writeByte(DataCommand.C2S_OUT_OF_GAME.getID());
@@ -534,6 +552,9 @@ public class ConnectorMain implements Runnable {
 	 * 
 	 */
 	public void sendIAmTheWinner() {
+		if (this.player_id <= 0) {
+			throw new RuntimeException("You have not joined a game yet");
+		}
 		try {
 			synchronized (tcpconn.dos) {
 				tcpconn.dos.writeByte(DataCommand.C2S_WINNER.getID());
@@ -566,7 +587,7 @@ public class ConnectorMain implements Runnable {
 		if (this.getGameStage() == GameStage.FINISHED) {
 			return this.player_id == winner;
 		} else {
-			return false;//throw new RuntimeException("Game not finished yet");
+			return false; // Game not finished yet
 		}
 	}
 
@@ -600,20 +621,6 @@ public class ConnectorMain implements Runnable {
 			return "[Game unfinished]";//throw new RuntimeException("Game not at GameStage.FINISHED stage");
 		}
 	}
-
-
-	/*private void sendError(Exception ex) {
-		synchronized (tcpconn.dos) {
-			try {
-				tcpconn.dos.writeByte(DataCommand.C2S_SEND_ERROR.getID());
-				String data = "Version:" + Statics.CODE_VERSION + "\n" + Functions.Throwable2String(ex); 
-				tcpconn.dos.writeUTF(data);
-				tcpconn.dos.writeByte(Statics.CHECK_BYTE);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}*/
 
 
 	private void sendExit() {

@@ -83,6 +83,7 @@ public class MultiplayerTetris extends JFrame {
 
 		connector = StartGameOptions.ShowOptionsAndConnect(canvas, "Multiplayer Tetris", null);
 		if (connector == null) {
+			// todo - check min players
 			// User pressed cancel or connection failed.
 			System.exit(0);
 		}
@@ -187,7 +188,7 @@ public class MultiplayerTetris extends JFrame {
 				repaint();
 			}
 
-			textarea.append("Game ended - waiting for server...\n");
+			textarea.append("Game Over - waiting for game to finish...\n");
 			connector.waitForStage(GameStage.FINISHED);
 			if (connector.areWeTheWinner()) {
 				textarea.append("You have won!\n");
