@@ -27,7 +27,6 @@ import java.net.Socket;
 
 import ssmith.lang.DataArrayOutputStream;
 import ssmith.lang.Functions;
-import ssmith.net.TCPConnectionListener;
 import ssmith.net.TCPNetworkMultiServerConn3;
 import ssmith.util.Interval;
 
