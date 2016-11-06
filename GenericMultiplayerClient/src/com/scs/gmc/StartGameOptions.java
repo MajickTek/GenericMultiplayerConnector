@@ -83,6 +83,11 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 	 * @param game_client 
 	 * @return An instance of ConnectorMain that is already connected, or null if the user bailed.
 	 */
+	public static ConnectorMain ShowSimpleOptionsAndConnect(IGameClient game_client, String title, int min_players, int max_players) {
+		return ShowOptionsAndConnect(game_client, title, new SimpleStartGameOptions(title, min_players, max_players));
+	}
+	
+	
 	public static ConnectorMain ShowOptionsAndConnect(IGameClient game_client, String title, StartGameOptions options) {
 		while (true) {
 			if (options == null) {
