@@ -26,6 +26,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 
+import ssmith.io.Serialization;
 import ssmith.lang.DataArrayOutputStream;
 import ssmith.lang.Dates;
 import ssmith.lang.Functions;
@@ -304,7 +305,7 @@ public class ConnectorMain implements Runnable {
 							throw new IOException("Invalid check byte");
 						}
 
-						client.dataReceivedByTCP(fromplayerid, code, value);
+						client.keyValueReceivedByTCP(fromplayerid, code, value);
 						break;
 
 					case S2C_TCP_STRING_DATA:
@@ -315,7 +316,7 @@ public class ConnectorMain implements Runnable {
 							throw new IOException("Invalid check byte");
 						}
 
-						client.dataReceivedByTCP(fromplayerid, data);
+						client.stringReceivedByTCP(fromplayerid, data);
 						break;
 
 					case S2C_TCP_BYTEARRAY_DATA:
@@ -328,7 +329,21 @@ public class ConnectorMain implements Runnable {
 							throw new IOException("Invalid check byte");
 						}
 
-						client.dataReceivedByTCP(fromplayerid, b);
+						client.byteArrayReceivedByTCP(fromplayerid, b);
+						break;
+
+					case S2C_TCP_OBJECT_DATA:
+						fromplayerid = tcpconn.dis.readInt();
+						ln = tcpconn.dis.readInt();
+						b = new byte[ln];
+						tcpconn.dis.read(b);
+						check = tcpconn.dis.readByte();
+						if (check != Statics.CHECK_BYTE) {
+							throw new IOException("Invalid check byte");
+						}
+
+						Object obj = Serialization.deserialize(b);
+						client.objectReceivedByTCP(fromplayerid, obj);
 						break;
 
 					case S2C_GAME_OVER:
@@ -396,12 +411,13 @@ public class ConnectorMain implements Runnable {
 	 * Send data to all other players via TCP.
 	 * @param code The code to send
 	 * @param value The value.
+	 * @throws IOException 
 	 */
-	public void sendKeyValueDataByTCP(int code, int value) {
+	public void sendKeyValueDataByTCP(int code, int value) throws IOException {
 		if (this.player_id <= 0) {
 			throw new RuntimeException("You have not joined a game yet");
 		}
-		try {
+		//try {
 			//p("Sending basic data...");
 			synchronized (tcpconn.dos) {
 				tcpconn.dos.writeByte(DataCommand.C2S_TCP_KEYVALUE_DATA.getID());
@@ -409,38 +425,39 @@ public class ConnectorMain implements Runnable {
 				tcpconn.dos.writeInt(value);
 				tcpconn.dos.writeByte(Statics.CHECK_BYTE);
 			}
-		} catch (IOException e) {
+		/*} catch (IOException e) {
 			e.printStackTrace();
-		}
+		}*/
 	}
 
 
 	/**
 	 * Send data to all other players via TCP.
 	 * @param data The string to send
+	 * @throws IOException 
 	 */
-	public void sendStringDataByTCP(String data) {
+	public void sendStringDataByTCP(String data) throws IOException {
 		if (this.player_id <= 0) {
 			throw new RuntimeException("You have not joined a game yet");
 		}
-		try {
+		//try {
 			//p("Sending basic data...");
 			synchronized (tcpconn.dos) {
 				tcpconn.dos.writeByte(DataCommand.C2S_TCP_STRING_DATA.getID());
 				tcpconn.dos.writeUTF(data);
 				tcpconn.dos.writeByte(Statics.CHECK_BYTE);
 			}
-		} catch (IOException e) {
+		/*} catch (IOException e) {
 			e.printStackTrace();
-		}
+		}*/
 	}
 
 
-	public void sendByteArrayByTCP(byte[] data) {
+	public void sendByteArrayByTCP(byte[] data) throws IOException {
 		if (this.player_id <= 0) {
 			throw new RuntimeException("You have not joined a game yet");
 		}
-		try {
+		//try {
 			//p("Sending basic data...");
 			synchronized (tcpconn.dos) {
 				tcpconn.dos.writeByte(DataCommand.C2S_TCP_BYTEARRAY_DATA.getID());
@@ -448,9 +465,28 @@ public class ConnectorMain implements Runnable {
 				tcpconn.dos.write(data, 0, data.length);
 				tcpconn.dos.writeByte(Statics.CHECK_BYTE);
 			}
-		} catch (IOException e) {
+		/*} catch (IOException e) {
 			e.printStackTrace();
+		}*/
+	}
+
+
+	public void sendObjectByTCP(Object obj) throws IOException {
+		if (this.player_id <= 0) {
+			throw new RuntimeException("You have not joined a game yet");
 		}
+		//try {
+			//p("Sending basic data...");
+			byte data[] = Serialization.Serialize(obj);
+			synchronized (tcpconn.dos) {
+				tcpconn.dos.writeByte(DataCommand.C2S_TCP_OBJECT_DATA.getID());
+				tcpconn.dos.writeInt(data.length);
+				tcpconn.dos.write(data, 0, data.length);
+				tcpconn.dos.writeByte(Statics.CHECK_BYTE);
+			}
+		/*} catch (IOException e) {
+			e.printStackTrace();
+		}*/
 	}
 
 
@@ -458,12 +494,13 @@ public class ConnectorMain implements Runnable {
 	 * Send data to all other players via UDP.
 	 * @param code The code to send
 	 * @param value The value.
+	 * @throws IOException 
 	 */
-	public void sendKeyValueDataByUDP(int code, int value) {
+	public void sendKeyValueDataByUDP(int code, int value) throws IOException {
 		if (this.player_id <= 0) {
 			throw new RuntimeException("You have not joined a game yet");
 		}
-		try {
+		//try {
 			DataArrayOutputStream daos = new DataArrayOutputStream();
 			daos.writeByte(DataCommand.C2S_UDP_KEYVALUE_DATA.getID());
 			daos.writeLong(System.currentTimeMillis());
@@ -474,21 +511,22 @@ public class ConnectorMain implements Runnable {
 			daos.writeByte(Statics.CHECK_BYTE);
 			this.udpconn.sendPacket(daos.getByteArray());
 			daos.close();
-		} catch (IOException e) {
+		/*} catch (IOException e) {
 			e.printStackTrace();
-		}
+		}*/
 	}
 
 
 	/**
 	 * Send data to all other players via UDP.
 	 * @param data The string to send
+	 * @throws IOException 
 	 */
-	public void sendStringDataByUDP(String data) {
+	public void sendStringDataByUDP(String data) throws IOException {
 		if (this.player_id <= 0) {
 			throw new RuntimeException("You have not joined a game yet");
 		}
-		try {
+		//try {
 			DataArrayOutputStream daos = new DataArrayOutputStream();
 			daos.writeByte(DataCommand.C2S_UDP_STRING_DATA.getID());
 			daos.writeLong(System.currentTimeMillis());
@@ -498,17 +536,17 @@ public class ConnectorMain implements Runnable {
 			daos.writeByte(Statics.CHECK_BYTE);
 			this.udpconn.sendPacket(daos.getByteArray());
 			daos.close();
-		} catch (IOException e) {
+		/*} catch (IOException e) {
 			e.printStackTrace();
-		}
+		}*/
 	}
 
 
-	public void sendByteArrayByUDP(byte b[]) {
+	public void sendByteArrayByUDP(byte b[]) throws IOException {
 		if (this.player_id <= 0) {
 			throw new RuntimeException("You have not joined a game yet");
 		}
-		try {
+		//try {
 			DataArrayOutputStream daos = new DataArrayOutputStream();
 			daos.writeByte(DataCommand.C2S_UDP_BYTEARRAY_DATA.getID());
 			daos.writeLong(System.currentTimeMillis());
@@ -519,29 +557,52 @@ public class ConnectorMain implements Runnable {
 			daos.writeByte(Statics.CHECK_BYTE);
 			this.udpconn.sendPacket(daos.getByteArray());
 			daos.close();
-		} catch (IOException e) {
+		/*} catch (IOException e) {
 			e.printStackTrace();
+		}*/
+	}
+
+
+	public void sendObjectByUDP(Object obj) throws IOException {
+		if (this.player_id <= 0) {
+			throw new RuntimeException("You have not joined a game yet");
 		}
+		//try {
+			byte b[] = Serialization.Serialize(obj);
+			DataArrayOutputStream daos = new DataArrayOutputStream();
+			daos.writeByte(DataCommand.C2S_UDP_OBJECT_DATA.getID());
+			daos.writeLong(System.currentTimeMillis());
+			daos.writeUTF(gameid);
+			daos.writeInt(player_id);
+			daos.writeInt(b.length);
+			daos.write(b, 0, b.length);
+			daos.writeByte(Statics.CHECK_BYTE);
+			this.udpconn.sendPacket(daos.getByteArray());
+			daos.close();
+		/*} catch (IOException e) {
+			e.printStackTrace();
+		}*/
 	}
 
 
 	/**
 	 * Tell the server that we are out of the game, e.g. we have died and run out of lives.  If only one
 	 * player is left, that player is declared the winner by the server.
+	 * @throws IOException 
 	 * 
 	 */
-	public void sendOutOfGame() {
+	public void sendOutOfGame() throws IOException {
 		if (this.player_id <= 0) {
 			throw new RuntimeException("You have not joined a game yet");
 		}
-		try {
+		//try {
 			synchronized (tcpconn.dos) {
 				tcpconn.dos.writeByte(DataCommand.C2S_OUT_OF_GAME.getID());
 				tcpconn.dos.writeByte(Statics.CHECK_BYTE);
 			}
-		} catch (IOException e) {
+		/*} catch (IOException e) {
 			e.printStackTrace();
-		}
+		}*/
 
 	}
 
@@ -549,34 +610,35 @@ public class ConnectorMain implements Runnable {
 	/**
 	 * Tell the server that we are probably the winners as we have reached the end.
 	 * Note that the server will confirm this (or otherwise), as multiple clients could send this at the same time.
+	 * @throws IOException 
 	 * 
 	 */
-	public void sendIAmTheWinner() {
+	public void sendIAmTheWinner() throws IOException {
 		if (this.player_id <= 0) {
 			throw new RuntimeException("You have not joined a game yet");
 		}
-		try {
+		//try {
 			synchronized (tcpconn.dos) {
 				tcpconn.dos.writeByte(DataCommand.C2S_WINNER.getID());
 				tcpconn.dos.writeByte(Statics.CHECK_BYTE);
 			}
-		} catch (IOException e) {
+		/*} catch (IOException e) {
 			e.printStackTrace();
-		}
+		}*/
 	}
 
 	
-	private void checkVersion() { 
-		try {
+	private void checkVersion() throws IOException { 
+		//try {
 			//p("Checking version...");
 			synchronized (tcpconn.dos) {
 				tcpconn.dos.writeByte(DataCommand.C2S_VERSION.getID());
 				tcpconn.dos.writeInt(Statics.COMMS_VERSION);
 				tcpconn.dos.writeByte(Statics.CHECK_BYTE);
 			}
-		} catch (IOException e) {
+		/*} catch (IOException e) {
 			e.printStackTrace();
-		}
+		}*/
 	}
 
 
@@ -634,6 +696,7 @@ public class ConnectorMain implements Runnable {
 						tcpconn.dos.flush();
 					}
 				} catch (IOException e) {
+					// Don't care...
 					//e.printStackTrace();
 				}
 			}
@@ -678,7 +741,7 @@ public class ConnectorMain implements Runnable {
 		return this.last_error_code;
 	}
 
-
+	// todo - search for catch IOExc and remove
 	public static void p(String s) {
 		System.out.println("Client: " + Dates.FormatDate(Calendar.getInstance().getTime(), Dates.UKDATE_FORMAT_WITH_TIME) + "-" + s);
 	}

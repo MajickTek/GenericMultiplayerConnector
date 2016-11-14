@@ -20,6 +20,8 @@
 
 package com.scs.gmc;
 
+import java.io.IOException;
+
 /**
  * This interface needs to be implemented by a class from the game.
  *
@@ -37,17 +39,21 @@ public interface IGameClient {
 	
 	void gameEnded(String winner);
 	
-	void dataReceivedByTCP(int fromplayerid, int code, int value);
+	void keyValueReceivedByTCP(int fromplayerid, int code, int value) throws IOException;
 	
-	void dataReceivedByUDP(long time, int fromplayerid, int code, int value);
+	void keyValueReceivedByUDP(long time, int fromplayerid, int code, int value) throws IOException;
 	
-	void dataReceivedByTCP(int fromplayerid, String data);
+	void stringReceivedByTCP(int fromplayerid, String data) throws IOException;
 	
-	void dataReceivedByTCP(int fromplayerid, byte[] data);
+	void stringReceivedByUDP(long time, int fromplayerid, String data) throws IOException;
 	
-	void dataReceivedByUDP(long time, int fromplayerid, String data);
+	void byteArrayReceivedByTCP(int fromplayerid, byte[] data) throws IOException;
 	
-	void dataReceivedByUDP(long time, int fromplayerid, byte[] data);
+	void byteArrayReceivedByUDP(long time, int fromplayerid, byte[] data) throws IOException;
+	
+	void objectReceivedByTCP(int fromplayerid, Object obj) throws IOException;
+	
+	void objectReceivedByUDP(long time, int fromplayerid, Object obj) throws IOException;
 	
 	void error(int error_code, String msg);
 	

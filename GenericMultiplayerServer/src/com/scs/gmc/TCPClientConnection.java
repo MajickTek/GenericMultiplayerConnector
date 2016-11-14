@@ -25,6 +25,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 
+import ssmith.io.Serialization;
 import ssmith.lang.DataArrayOutputStream;
 import ssmith.lang.Functions;
 import ssmith.net.TCPNetworkMultiServerConn3;
@@ -213,8 +214,23 @@ public final class TCPClientConnection extends TCPNetworkMultiServerConn3 implem
 					if (check != Statics.CHECK_BYTE) {
 						throw new IOException("Invalid check byte after receiving " + cmd);
 					}
+					
 					if (playerdata != null) { // Otherwise not joined a game
 						main.broadcastByteArray(playerdata.id, b, main.getGame(playerdata.gameid));
+					}
+					break;
+
+				case C2S_TCP_OBJECT_DATA:
+					len = dis.readInt();
+					b = new byte[len];
+					dis.read(b);
+					check = dis.readByte();
+					if (check != Statics.CHECK_BYTE) {
+						throw new IOException("Invalid check byte after receiving " + cmd);
+					}
+
+					if (playerdata != null) { // Otherwise not joined a game
+						main.broadcastObject(playerdata.id, b, main.getGame(playerdata.gameid));
 					}
 					break;
 

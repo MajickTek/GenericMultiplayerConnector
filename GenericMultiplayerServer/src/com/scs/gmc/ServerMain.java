@@ -279,6 +279,19 @@ public final class ServerMain implements ErrorHandler, IConnectionCollector {
 	}
 
 
+	public void broadcastObject(int fromplayerid, byte data[], ServerGame game) throws IOException {
+		DataArrayOutputStream dos = new DataArrayOutputStream();
+		dos.writeByte(DataCommand.S2C_TCP_OBJECT_DATA.getID());
+		dos.writeInt(fromplayerid);
+		dos.writeInt(data.length);
+		dos.write(data, 0, data.length);
+		dos.writeByte(Statics.CHECK_BYTE);
+		this.sendTCPToAll(game, dos, fromplayerid);
+		dos.close();
+
+	}
+
+
 	public void sendCurrentPlayers(ServerGame game) throws IOException {
 		DataArrayOutputStream daos = new DataArrayOutputStream();
 		daos.writeByte(DataCommand.S2C_CURRENT_PLAYERS.getID());

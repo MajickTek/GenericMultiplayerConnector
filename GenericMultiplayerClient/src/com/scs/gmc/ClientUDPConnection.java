@@ -28,6 +28,8 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 
+import ssmith.io.Serialization;
+
 /**
  * Class for handing UDP data.
  *
@@ -96,7 +98,7 @@ public final class ClientUDPConnection extends Thread {
 							throw new IOException("Invalid check byte");
 						}
 						
-						main.client.dataReceivedByUDP(time, fromplayerid, code, value);
+						main.client.keyValueReceivedByUDP(time, fromplayerid, code, value);
 						break;
 						
 					case S2C_UDP_STRING_DATA:
@@ -108,7 +110,7 @@ public final class ClientUDPConnection extends Thread {
 							throw new IOException("Invalid check byte");
 						}
 						
-						main.client.dataReceivedByUDP(time, fromplayerid, data);
+						main.client.stringReceivedByUDP(time, fromplayerid, data);
 						break;
 						
 					case S2C_UDP_BYTEARRAY_DATA:
@@ -122,7 +124,22 @@ public final class ClientUDPConnection extends Thread {
 							throw new IOException("Invalid check byte");
 						}
 						
-						main.client.dataReceivedByUDP(time, fromplayerid, b);
+						main.client.byteArrayReceivedByUDP(time, fromplayerid, b);
+						break;
+						
+					case S2C_UDP_OBJECT_DATA:
+						time = dis.readLong();
+						fromplayerid = dis.readInt();
+						len = dis.readInt();
+						b = new byte[len];
+						dis.read(b);
+						check = dis.readByte();
+						if (check != Statics.CHECK_BYTE) {
+							throw new IOException("Invalid check byte");
+						}
+						
+						Object obj = Serialization.deserialize(b);
+						main.client.objectReceivedByUDP(time, fromplayerid, obj);
 						break;
 						
 					default:

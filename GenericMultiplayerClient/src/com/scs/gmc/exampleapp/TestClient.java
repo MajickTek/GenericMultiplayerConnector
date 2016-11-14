@@ -21,6 +21,7 @@
 package com.scs.gmc.exampleapp;
 
 
+import java.io.IOException;
 import java.util.Calendar;
 import java.util.Random;
 
@@ -66,6 +67,7 @@ public class TestClient implements Runnable, IGameClient {
 
 	@Override
 	public void run() {
+		try {
 		boolean success = connector.connect(); // Connect to the server
 		if (success) {
 			for (int i=0 ; i<3 ; i++) { // Run through 3 games
@@ -117,6 +119,9 @@ public class TestClient implements Runnable, IGameClient {
 
 		// All done, so disconnect. 
 		connector.disconnect();
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		}
 	}
 
 
@@ -145,37 +150,37 @@ public class TestClient implements Runnable, IGameClient {
 
 
 	@Override
-	public void dataReceivedByTCP(int fromplayerid, int key, int value) {
+	public void keyValueReceivedByTCP(int fromplayerid, int key, int value) {
 		p("Data received from player " + fromplayerid + ".  " + key + "=" + value);
 	}
 
 
 	@Override
-	public void dataReceivedByUDP(long time, int fromplayerid, int key, int value) {
+	public void keyValueReceivedByUDP(long time, int fromplayerid, int key, int value) {
 		p("Data received from player " + fromplayerid + ".  " + key + "=" +value);
 	}
 
 
 	@Override
-	public void dataReceivedByTCP(int fromplayerid, String data) {
+	public void stringReceivedByTCP(int fromplayerid, String data) {
 		p("Data received from player " + fromplayerid + ".  " + data);
 	}
 
 
 	@Override
-	public void dataReceivedByUDP(long time, int fromplayerid, String data) {
+	public void stringReceivedByUDP(long time, int fromplayerid, String data) {
 		p("Data received from player " + fromplayerid + ".  " + data);
 	}
 
 
 	@Override
-	public void dataReceivedByTCP(int fromplayerid, byte[] data) {
+	public void byteArrayReceivedByTCP(int fromplayerid, byte[] data) {
 		p("Data: " + data[0] + ", " + data[1]);
 	}
 
 
 	@Override
-	public void dataReceivedByUDP(long time, int fromplayerid, byte[] data) {
+	public void byteArrayReceivedByUDP(long time, int fromplayerid, byte[] data) {
 		p("Data: " + data[0] + ", " + data[1]);
 	}
 
@@ -199,6 +204,18 @@ public class TestClient implements Runnable, IGameClient {
 
 	private void pe(String s) {
 		System.err.println(connector.getPlayerName() + ": " + Dates.FormatDate(Calendar.getInstance().getTime(), Dates.UKDATE_FORMAT_WITH_TIME) + "-" + s);
+	}
+
+
+	@Override
+	public void objectReceivedByTCP(int fromplayerid, Object obj) {
+		
+	}
+
+
+	@Override
+	public void objectReceivedByUDP(long time, int fromplayerid, Object obj) {
+		
 	}
 
 

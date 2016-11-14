@@ -24,6 +24,7 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -361,7 +362,12 @@ public class MultiplayerTetris extends JFrame {
 					buf_index--;
 				} else {
 					// We have cleared a row
-					connector.sendKeyValueDataByTCP(CODE_LINE_CLEARED, 1);
+					try {
+						connector.sendKeyValueDataByTCP(CODE_LINE_CLEARED, 1);
+					} catch (IOException e) {
+						textarea.append(e.getMessage());
+						e.printStackTrace();
+					}
 					// Slow us down
 					synchronized (current_speedup) {
 						current_speedup.addAndGet(-SPEEDUP_INC);
@@ -377,7 +383,12 @@ public class MultiplayerTetris extends JFrame {
 
 		private void gameOver() {
 			System.out.println("GAME OVER");
-			connector.sendOutOfGame();
+			try {
+				connector.sendOutOfGame();
+			} catch (IOException e) {
+				textarea.append(e.getMessage());
+				e.printStackTrace();
+			}
 			game_over = true;
 			addCurrentDataBlockToMainData();
 			current_shape = null;
@@ -440,7 +451,7 @@ public class MultiplayerTetris extends JFrame {
 		}
 
 		@Override
-		public void dataReceivedByTCP(int fromplayerid, int code, int value) {
+		public void keyValueReceivedByTCP(int fromplayerid, int code, int value) {
 			if (code == CODE_LINE_CLEARED) {
 				// An opponent has clear a row, so speed us up!
 				textarea.append("Opponent has cleared a line\n");
@@ -454,17 +465,17 @@ public class MultiplayerTetris extends JFrame {
 		}
 
 		@Override
-		public void dataReceivedByUDP(long time, int fromplayerid, int code, int value) {
+		public void keyValueReceivedByUDP(long time, int fromplayerid, int code, int value) {
 
 		}
 
 		@Override
-		public void dataReceivedByTCP(int fromplayerid, String data) {
+		public void stringReceivedByTCP(int fromplayerid, String data) {
 
 		}
 
 		@Override
-		public void dataReceivedByUDP(long time, int fromplayerid, String data) {
+		public void stringReceivedByUDP(long time, int fromplayerid, String data) {
 
 		}
 
@@ -480,14 +491,26 @@ public class MultiplayerTetris extends JFrame {
 
 
 		@Override
-		public void dataReceivedByTCP(int fromplayerid, byte[] data) {
+		public void byteArrayReceivedByTCP(int fromplayerid, byte[] data) {
 
 		}
 
 
 		@Override
-		public void dataReceivedByUDP(long time, int fromplayerid, byte[] data) {
+		public void byteArrayReceivedByUDP(long time, int fromplayerid, byte[] data) {
 
+		}
+
+
+		@Override
+		public void objectReceivedByTCP(int fromplayerid, Object obj) {
+			
+		}
+
+
+		@Override
+		public void objectReceivedByUDP(long time, int fromplayerid, Object obj) {
+			
 		}
 
 	}

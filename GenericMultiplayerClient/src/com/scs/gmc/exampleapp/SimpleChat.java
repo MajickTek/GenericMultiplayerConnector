@@ -1,6 +1,7 @@
 package com.scs.gmc.exampleapp;
 
 import java.awt.event.WindowEvent;
+import java.io.IOException;
 
 import javax.swing.JFrame;
 
@@ -30,7 +31,12 @@ public class SimpleChat extends ChatWindow implements IGameClient {
 
 	@Override
 	protected void sendChat(String chat) {
-		this.connector.sendStringDataByTCP(this.connector.getPlayerName() + ": " + chat);
+		try {
+			this.connector.sendStringDataByTCP(this.connector.getPlayerName() + ": " + chat);
+		} catch (IOException e) {
+			this.appendChat(e.getMessage());
+			e.printStackTrace();
+		}
 	}
 
 	@Override
@@ -44,7 +50,7 @@ public class SimpleChat extends ChatWindow implements IGameClient {
 	}
 
 	@Override
-	public void dataReceivedByTCP(int fromplayerid, String data) {
+	public void stringReceivedByTCP(int fromplayerid, String data) {
 		this.appendChat(data);
 
 	}
@@ -67,31 +73,31 @@ public class SimpleChat extends ChatWindow implements IGameClient {
 
 
 	@Override
-	public void dataReceivedByTCP(int fromplayerid, int code, int value) {
+	public void keyValueReceivedByTCP(int fromplayerid, int code, int value) {
 
 	}
 
 
 	@Override
-	public void dataReceivedByUDP(long time, int fromplayerid, int code, int value) {
+	public void keyValueReceivedByUDP(long time, int fromplayerid, int code, int value) {
 
 	}
 
 
 	@Override
-	public void dataReceivedByTCP(int fromplayerid, byte[] data) {
+	public void byteArrayReceivedByTCP(int fromplayerid, byte[] data) {
 
 	}
 
 
 	@Override
-	public void dataReceivedByUDP(long time, int fromplayerid, String data) {
+	public void stringReceivedByUDP(long time, int fromplayerid, String data) {
 
 	}
 
 
 	@Override
-	public void dataReceivedByUDP(long time, int fromplayerid, byte[] data) {
+	public void byteArrayReceivedByUDP(long time, int fromplayerid, byte[] data) {
 
 	}
 
@@ -105,6 +111,16 @@ public class SimpleChat extends ChatWindow implements IGameClient {
 	@Override
 	public void serverDown(long ms_since_response) {
 
+	}
+
+	@Override
+	public void objectReceivedByTCP(int fromplayerid, Object obj) {
+		
+	}
+
+	@Override
+	public void objectReceivedByUDP(long time, int fromplayerid, Object obj) {
+		
 	}
 
 

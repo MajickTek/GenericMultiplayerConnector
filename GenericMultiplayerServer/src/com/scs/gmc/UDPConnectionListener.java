@@ -28,6 +28,7 @@ import java.net.DatagramSocket;
 import java.net.SocketTimeoutException;
 import java.util.Iterator;
 
+import ssmith.io.Serialization;
 import ssmith.lang.DataArrayOutputStream;
 import ssmith.lang.ErrorHandler;
 
@@ -169,6 +170,30 @@ public final class UDPConnectionListener extends Thread {
 						// Send it to all other clients
 						daos = new DataArrayOutputStream();
 						daos.writeByte(DataCommand.S2C_UDP_BYTEARRAY_DATA.getID());
+						daos.writeLong(time);
+						daos.writeInt(playerid);
+						daos.writeInt(ba.length);
+						daos.write(ba, 0, ba.length);
+						daos.writeByte(Statics.CHECK_BYTE);
+						this.sendPacketToAll(gameid, daos.getByteArray(), playerid);
+						daos.close();
+						break;
+
+					case C2S_UDP_OBJECT_DATA:
+						time = dis.readLong();
+						gameid = dis.readUTF();
+						playerid = dis.readInt();
+						len = dis.readInt();
+						ba = new byte[len];
+						dis.read(ba);
+						check = dis.readByte();
+						if (check != Statics.CHECK_BYTE) {
+							throw new IOException("Invalid check byte");
+						}
+
+						// Send it to all other clients
+						daos = new DataArrayOutputStream();
+						daos.writeByte(DataCommand.S2C_UDP_OBJECT_DATA.getID());
 						daos.writeLong(time);
 						daos.writeInt(playerid);
 						daos.writeInt(ba.length);
