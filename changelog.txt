@@ -1,0 +1,7 @@
+GENERIC MULTIPLAYER CONNECTOR
+
+Changelog
+
+V1.1 - 14th November 2016
+* Add methods to send/receive Objects
+

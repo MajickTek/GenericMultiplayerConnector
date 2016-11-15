@@ -1,7 +1,7 @@
 # GENERIC MULTIPLAYER CONNECTOR
 
 ## Overview
-The Generic Multiplayer Connector (GMC) is a library to simplify networking between clients in a game.  The library will handle all the networking between the clients and server (including sockets, threading etc..) and once connected, a client can broadcast data to all the other clients with a single function call.
+The Generic Multiplayer Connector (GMC) is a library to simplify networking between clients in a game.  The library will handle all the networking between the clients and server (including sockets, threading etc..).  Once a client is connected to the server, they can broadcast data to all the other clients with a single function call.
 
 I designed the GMC originally so I could convert simple single-player games into multiplayer challenges (see Multiplayer Tetris).  However, it can be used for any networking requirements.
 
@@ -9,11 +9,11 @@ I designed the GMC originally so I could convert simple single-player games into
 ## Why should I use GMC?
 That's a very good question.  There are lots of other networking libraries out there.  However, the real advantage of GMC is that it requires minimal setup, configuration and handling: 
 
-* Running the server is simple a case of running a jar.  The server is entirely generic, meaning a single server can be used for any number of different games.
-* Once a client is connected, it can send data, and will automatically receive data, from all the other clients playing in the same game.  All you need to do is decide when to send data, what data to send, and what to do with the data when it's received.
+* Running the server is simple a case of running a jar.  The server is entirely generic, meaning a single server can be used for any number of different games and types of games.
+* Once a client is connected, it can easily send data, and will automatically receive data, from all the other clients playing in the same game.  All you (the game developer) need to do is decide what to send and what to do when it's received.
 * You don't need to worry about handling network connections, multithreading, keeping track of other players etc..  Just send and receive data.
-*  There are built-in methods for accessing the current status of the game (waiting for players, started, finished), notification when a player has joined/left, and who the winner of the game was.
-* There is a free publicly-accessible server available to use.
+*  There are also built-in methods for accessing the current status of the game (waiting for players, started, finished), notification when a player has joined/left, and who the winner of the game was.
+* There is also a free publicly-accessible server available to use.
 
 
 ## Example Code
@@ -34,7 +34,7 @@ Connecting to the server:-
 	// This helper function will bring up a simple form for the user to enter an IP address etc..
 	ConnectorMain connector = StartGameOptions.ShowOptionsAndConnect(this);
 
-	// Alternatively, if you have your own method of getting the connection and player's details:
+	// Alternatively, if you have your own method of getting the connection details:
 	ConnectorMain connector = new ConnectorMain(this, "127.0.0.1", 9996, "Players Name", "MyGame", 2, 99);
 	connector.connect();
 ```
@@ -55,7 +55,9 @@ Sending data to all other clients:-
 Receving data
 ```java
 	// The 'game' object is your class that implements the IGameClient interface.
-	game.dataReceivedByTCP(int fromplayerid, int code, int value);
+	game.dataReceivedByTCP(int fromplayerid, int code, int value) { 
+	// Do stuff with the data 
+}
 ```
 
 The following functions are not required to be used, but the GMC can also keep track and inform the clients if a player has won the game.
@@ -79,11 +81,11 @@ For further help, please see the [Wiki](https://bitbucket.org/SteveSmith16384/ge
 
 
 ## Public Server
-I run a basic server at 178.62.91.22 port 9996 that can be used for inter-game communication.  Note that this server is not guaranteed to be available 24/7 though, and should not be used for anything mission-critical.
+I run a GMC server at 178.62.91.22:9996 that can be used for inter-game communication.  Note that this server is not guaranteed to be available 24/7 though, and should not be used for anything mission-critical.
 
 
 ## Games using this library
-Multiplayer Tetris is included in the library, where the game speeds up when an opponent completes a row.  
+Multiplayer Tetris is included in the library; a player's game speeds up when an opponent completes a row.  
 
 I've also retrofitted a version of Tempest to be multi-player.  This can be found [here](https://github.com/SteveSmith16384/wbt-multiplayer).
 
