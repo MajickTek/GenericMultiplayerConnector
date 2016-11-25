@@ -1,23 +1,3 @@
-/*
- *  This file is part of GenericMultiplayerConnector.
-
-    GenericMultiplayerConnector is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    GenericMultiplayerConnector is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with GenericMultiplayerConnector.  If not, see <http://www.gnu.org/licenses/>.
-
-    GenericMultiplayerConnector (C)Stephen Carlyle-Smith
-
- */
-
 package com.scs.gmc;
 
 import java.io.DataInputStream;
@@ -28,14 +8,14 @@ import java.net.Socket;
 import ssmith.io.Serialization;
 import ssmith.lang.DataArrayOutputStream;
 import ssmith.lang.Functions;
-import ssmith.net.TCPNetworkMultiServerConn3;
+import ssmith.net.TCPConnectionWrapper;
 import ssmith.util.Interval;
 
-public final class TCPClientConnection extends TCPNetworkMultiServerConn3 implements Runnable {
+public final class TCPClientConnection extends TCPConnectionWrapper implements Runnable {
 
 	public ServerMain main;
 	public PlayerData playerdata;
-	private final Interval alive_int = new Interval(15 * 1000);
+	private final Interval alive_int = new Interval(60 * 1000);
 
 	public TCPClientConnection(Socket sck, ServerMain _main) throws IOException {
 		super(sck);
@@ -88,7 +68,7 @@ public final class TCPClientConnection extends TCPNetworkMultiServerConn3 implem
 							dos.writeByte(Statics.CHECK_BYTE);
 						}
 					} else {
-						sendErrorToClient(dos, ErrorCodes.INCOMPATIBLE_CODE_VERSION, "Invalid version; " + Statics.CODE_VERSION + " required.  Run update to get latest version.");
+						sendErrorToClient(dos, new RuntimeException("Invalid version; " + Statics.CODE_VERSION + " required.  Run update to get latest version."));
 						main.schedulePlayerRemoval(conn);
 					}
 					break;
@@ -162,11 +142,11 @@ public final class TCPClientConnection extends TCPNetworkMultiServerConn3 implem
 									}
 								}
 							} else {
-								this.sendErrorToClient(dos, ErrorCodes.TOO_MANY_PLAYERS, "Too many players");
+								this.sendErrorToClient(dos, new RuntimeException("Too many players"));
 							}
 						}
 					} else {
-						this.sendErrorToClient(dos, ErrorCodes.INVALID_NAME, "Invalid name: '" + name + "'");
+						this.sendErrorToClient(dos, new RuntimeException("Invalid name: '" + name + "'"));
 					}
 					break;
 
@@ -284,6 +264,7 @@ public final class TCPClientConnection extends TCPNetworkMultiServerConn3 implem
 					playerdata.awaiting_ping_response = true;
 				} else {
 					if (System.currentTimeMillis() - Statics.SERVER_DIED_DURATION > playerdata.ping_req_sent_time) {
+						main.p("Removing " + playerdata.name + " as received no ping");
 						main.schedulePlayerRemoval(conn);
 					}
 				}
@@ -299,11 +280,12 @@ public final class TCPClientConnection extends TCPNetworkMultiServerConn3 implem
 	 * @param error
 	 * @throws IOException
 	 */
-	private void sendErrorToClient(DataOutputStream dos, int code, String error) throws IOException {
+	private void sendErrorToClient(DataOutputStream dos, Throwable ex) throws IOException {
 		synchronized (dos) {
 			dos.writeByte(DataCommand.S2C_ERROR.getID());
-			dos.writeInt(code);
-			dos.writeUTF(error);
+			byte b[] = Serialization.Serialize(ex);
+			dos.writeInt(b.length);
+			dos.write(b);
 			dos.writeByte(Statics.CHECK_BYTE);
 		}
 	}

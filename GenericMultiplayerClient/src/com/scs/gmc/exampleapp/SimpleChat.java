@@ -16,10 +16,14 @@ public class SimpleChat extends ChatWindow implements IGameClient {
 	private ConnectorMain connector; 
 
 	public static void main(String[] args) {
-		new SimpleChat();
+		try {
+			new SimpleChat();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
-	public SimpleChat() {
+	public SimpleChat() throws IOException {
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		connector = StartGameOptions.ShowOptionsAndConnect(this, "Simple Chat", new SimpleStartGameOptions("Simple Chat", -1, -1));
 		if (connector != null) {
@@ -103,8 +107,8 @@ public class SimpleChat extends ChatWindow implements IGameClient {
 
 
 	@Override
-	public void error(int error_code, String msg) {
-
+	public void error(Throwable ex) {
+		ex.printStackTrace();
 	}
 
 

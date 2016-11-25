@@ -1,21 +1,11 @@
 /*
- *  This file is part of GenericMultiplayerConnector.
+ * Copyright (c)2016 Stephen Carlyle-Smith
 
-    GenericMultiplayerConnector is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-    GenericMultiplayerConnector is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-    You should have received a copy of the GNU General Public License
-    along with GenericMultiplayerConnector.  If not, see <http://www.gnu.org/licenses/>.
-
-    GenericMultiplayerConnector (C)Stephen Carlyle-Smith
-
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package com.scs.gmc;
@@ -23,8 +13,8 @@ package com.scs.gmc;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 import ssmith.io.Serialization;
 import ssmith.lang.DataArrayOutputStream;
@@ -50,9 +40,9 @@ public class ConnectorMain implements Runnable {
 	private volatile boolean stop_now = false;
 	private Interval check_server_interval = new Interval(Statics.CHECK_SERVER_ALIVE_INTERVAL);
 	private int port;
-	
-	private String last_error;
-	private int last_error_code;
+
+	//private String last_error;
+	//private int last_error_code;
 
 	// Our data
 	private String playername, server;
@@ -61,7 +51,7 @@ public class ConnectorMain implements Runnable {
 
 	// Game data
 	private int player_id = -1;
-	private final Map<Integer, ClientPlayerData> players = new HashMap<Integer, ClientPlayerData>();
+	private final Map<Integer, ClientPlayerData> players = new TreeMap<Integer, ClientPlayerData>();
 	private volatile GameStage game_stage = GameStage.WAITING_FOR_PLAYERS;
 	private volatile int winner;
 	private volatile String winner_name;
@@ -111,14 +101,13 @@ public class ConnectorMain implements Runnable {
 	public ConnectorMain(IGameClient _client, String _server, int _port, String _playername, String _gameid, int _min_players) {
 		this(_client, _server, _port, _playername, _gameid, _min_players, -1);
 	}
-	
-	
+
+
 	/**
 	 * Actually connect to the server.
 	 * @return A boolean indicating success.
 	 */
-	public boolean connect() {
-		try {
+	public void connect() throws IOException {
 			server_responded_to_udpconn = false;
 
 			if (sck != null) {
@@ -141,15 +130,15 @@ public class ConnectorMain implements Runnable {
 			t.setDaemon(true);
 			t.start();
 
-			return true;
-		} catch (IOException ex) {
+			//return true;
+		/*} catch (IOException ex) {
 			this.last_error = ex.getMessage();
 			this.last_error_code = ErrorCodes.IO_ERROR;
 		} catch (Exception ex) {
 			this.last_error = ex.getMessage();
 			this.last_error_code = ErrorCodes.MISC;
-		}
-		return false;
+		}*/
+		//return false;
 	}
 
 
@@ -159,15 +148,15 @@ public class ConnectorMain implements Runnable {
 	 * 
 	 * @return A boolean indicating success.
 	 */
-	public boolean joinGame() {
+	public void joinGame() throws IOException {
 		if (sck == null) {
 			throw new RuntimeException("Not connected!");
 		}
-		
+
 		/*if (this.game_stage == GameStage.IN_PROGRESS) {
 			p("Warning: joining a game before the last game has finished.");
 		}*/
-		
+
 		// Reset values
 		player_id = -1;
 		players.clear();
@@ -175,7 +164,7 @@ public class ConnectorMain implements Runnable {
 		winner_name = null;
 		game_stage = GameStage.WAITING_FOR_PLAYERS;
 
-		try {
+		//try {
 			synchronized (tcpconn.dos) {
 				tcpconn.dos.writeByte(DataCommand.C2S_JOIN_GAME.getID());
 				tcpconn.dos.writeUTF(this.playername);
@@ -192,12 +181,12 @@ public class ConnectorMain implements Runnable {
 					throw new IOException("Timed out waiting for server");
 				}
 			}
-			return true;
-		} catch (IOException ex) {
+			//return true;
+		/*} catch (IOException ex) {
 			this.last_error = ex.getMessage();
 			this.last_error_code = ErrorCodes.IO_ERROR;
 		}
-		return false;
+		return false;*/
 	}
 
 
@@ -227,15 +216,19 @@ public class ConnectorMain implements Runnable {
 						break;
 
 					case S2C_ERROR:
-						last_error_code = tcpconn.dis.readInt();
-						last_error = tcpconn.dis.readUTF();
+						int ln = tcpconn.dis.readInt();
+						byte b[] = new byte[ln];
+						tcpconn.dis.read(b);
 						check = tcpconn.dis.readByte();
 						if (check != Statics.CHECK_BYTE) {
 							throw new IOException("Invalid check byte");
 						}
-						client.error(last_error_code, last_error);
-						throw new RuntimeException(last_error);
-
+						Object obj = Serialization.deserialize(b);
+						Throwable th = (Throwable)obj;
+						client.error(th);
+						//throw new RuntimeException(last_error);
+						break;
+						
 					case S2C_CURRENT_PLAYERS:
 						byte len = tcpconn.dis.readByte();
 						this.players.clear();
@@ -321,8 +314,8 @@ public class ConnectorMain implements Runnable {
 
 					case S2C_TCP_BYTEARRAY_DATA:
 						fromplayerid = tcpconn.dis.readInt();
-						int ln = tcpconn.dis.readInt();
-						byte b[] = new byte[ln];
+						ln = tcpconn.dis.readInt();
+						b = new byte[ln];
 						tcpconn.dis.read(b);
 						check = tcpconn.dis.readByte();
 						if (check != Statics.CHECK_BYTE) {
@@ -342,7 +335,7 @@ public class ConnectorMain implements Runnable {
 							throw new IOException("Invalid check byte");
 						}
 
-						Object obj = Serialization.deserialize(b);
+						obj = Serialization.deserialize(b);
 						client.objectReceivedByTCP(fromplayerid, obj);
 						break;
 
@@ -378,7 +371,7 @@ public class ConnectorMain implements Runnable {
 			// Don't catch IOException here is we need it to drop out if we close the socket
 		} catch (Exception ex) {
 			ex.printStackTrace();
-			client.error(0, ex.toString());
+			client.error(ex);
 			/*if (ex instanceof IOException == false) {
 				sendError(ex);
 			}*/
@@ -418,13 +411,13 @@ public class ConnectorMain implements Runnable {
 			throw new RuntimeException("You have not joined a game yet");
 		}
 		//try {
-			//p("Sending basic data...");
-			synchronized (tcpconn.dos) {
-				tcpconn.dos.writeByte(DataCommand.C2S_TCP_KEYVALUE_DATA.getID());
-				tcpconn.dos.writeInt(code);
-				tcpconn.dos.writeInt(value);
-				tcpconn.dos.writeByte(Statics.CHECK_BYTE);
-			}
+		//p("Sending basic data...");
+		synchronized (tcpconn.dos) {
+			tcpconn.dos.writeByte(DataCommand.C2S_TCP_KEYVALUE_DATA.getID());
+			tcpconn.dos.writeInt(code);
+			tcpconn.dos.writeInt(value);
+			tcpconn.dos.writeByte(Statics.CHECK_BYTE);
+		}
 		/*} catch (IOException e) {
 			e.printStackTrace();
 		}*/
@@ -441,12 +434,12 @@ public class ConnectorMain implements Runnable {
 			throw new RuntimeException("You have not joined a game yet");
 		}
 		//try {
-			//p("Sending basic data...");
-			synchronized (tcpconn.dos) {
-				tcpconn.dos.writeByte(DataCommand.C2S_TCP_STRING_DATA.getID());
-				tcpconn.dos.writeUTF(data);
-				tcpconn.dos.writeByte(Statics.CHECK_BYTE);
-			}
+		//p("Sending basic data...");
+		synchronized (tcpconn.dos) {
+			tcpconn.dos.writeByte(DataCommand.C2S_TCP_STRING_DATA.getID());
+			tcpconn.dos.writeUTF(data);
+			tcpconn.dos.writeByte(Statics.CHECK_BYTE);
+		}
 		/*} catch (IOException e) {
 			e.printStackTrace();
 		}*/
@@ -458,13 +451,13 @@ public class ConnectorMain implements Runnable {
 			throw new RuntimeException("You have not joined a game yet");
 		}
 		//try {
-			//p("Sending basic data...");
-			synchronized (tcpconn.dos) {
-				tcpconn.dos.writeByte(DataCommand.C2S_TCP_BYTEARRAY_DATA.getID());
-				tcpconn.dos.writeInt(data.length);
-				tcpconn.dos.write(data, 0, data.length);
-				tcpconn.dos.writeByte(Statics.CHECK_BYTE);
-			}
+		//p("Sending basic data...");
+		synchronized (tcpconn.dos) {
+			tcpconn.dos.writeByte(DataCommand.C2S_TCP_BYTEARRAY_DATA.getID());
+			tcpconn.dos.writeInt(data.length);
+			tcpconn.dos.write(data, 0, data.length);
+			tcpconn.dos.writeByte(Statics.CHECK_BYTE);
+		}
 		/*} catch (IOException e) {
 			e.printStackTrace();
 		}*/
@@ -475,18 +468,17 @@ public class ConnectorMain implements Runnable {
 		if (this.player_id <= 0) {
 			throw new RuntimeException("You have not joined a game yet");
 		}
-		//try {
-			//p("Sending basic data...");
-			byte data[] = Serialization.Serialize(obj);
-			synchronized (tcpconn.dos) {
-				tcpconn.dos.writeByte(DataCommand.C2S_TCP_OBJECT_DATA.getID());
-				tcpconn.dos.writeInt(data.length);
-				tcpconn.dos.write(data, 0, data.length);
-				tcpconn.dos.writeByte(Statics.CHECK_BYTE);
-			}
-		/*} catch (IOException e) {
-			e.printStackTrace();
-		}*/
+		if (obj == null) {
+			throw new RuntimeException("Trying to send null object!");
+		}
+		//p("Sending basic data...");
+		byte data[] = Serialization.Serialize(obj);
+		synchronized (tcpconn.dos) {
+			tcpconn.dos.writeByte(DataCommand.C2S_TCP_OBJECT_DATA.getID());
+			tcpconn.dos.writeInt(data.length);
+			tcpconn.dos.write(data, 0, data.length);
+			tcpconn.dos.writeByte(Statics.CHECK_BYTE);
+		}
 	}
 
 
@@ -501,16 +493,16 @@ public class ConnectorMain implements Runnable {
 			throw new RuntimeException("You have not joined a game yet");
 		}
 		//try {
-			DataArrayOutputStream daos = new DataArrayOutputStream();
-			daos.writeByte(DataCommand.C2S_UDP_KEYVALUE_DATA.getID());
-			daos.writeLong(System.currentTimeMillis());
-			daos.writeUTF(gameid);
-			daos.writeInt(player_id);
-			daos.writeInt(code);
-			daos.writeInt(value);
-			daos.writeByte(Statics.CHECK_BYTE);
-			this.udpconn.sendPacket(daos.getByteArray());
-			daos.close();
+		DataArrayOutputStream daos = new DataArrayOutputStream();
+		daos.writeByte(DataCommand.C2S_UDP_KEYVALUE_DATA.getID());
+		daos.writeLong(System.currentTimeMillis());
+		daos.writeUTF(gameid);
+		daos.writeInt(player_id);
+		daos.writeInt(code);
+		daos.writeInt(value);
+		daos.writeByte(Statics.CHECK_BYTE);
+		this.udpconn.sendPacket(daos.getByteArray());
+		daos.close();
 		/*} catch (IOException e) {
 			e.printStackTrace();
 		}*/
@@ -527,15 +519,15 @@ public class ConnectorMain implements Runnable {
 			throw new RuntimeException("You have not joined a game yet");
 		}
 		//try {
-			DataArrayOutputStream daos = new DataArrayOutputStream();
-			daos.writeByte(DataCommand.C2S_UDP_STRING_DATA.getID());
-			daos.writeLong(System.currentTimeMillis());
-			daos.writeUTF(gameid);
-			daos.writeInt(player_id);
-			daos.writeUTF(data);
-			daos.writeByte(Statics.CHECK_BYTE);
-			this.udpconn.sendPacket(daos.getByteArray());
-			daos.close();
+		DataArrayOutputStream daos = new DataArrayOutputStream();
+		daos.writeByte(DataCommand.C2S_UDP_STRING_DATA.getID());
+		daos.writeLong(System.currentTimeMillis());
+		daos.writeUTF(gameid);
+		daos.writeInt(player_id);
+		daos.writeUTF(data);
+		daos.writeByte(Statics.CHECK_BYTE);
+		this.udpconn.sendPacket(daos.getByteArray());
+		daos.close();
 		/*} catch (IOException e) {
 			e.printStackTrace();
 		}*/
@@ -547,16 +539,16 @@ public class ConnectorMain implements Runnable {
 			throw new RuntimeException("You have not joined a game yet");
 		}
 		//try {
-			DataArrayOutputStream daos = new DataArrayOutputStream();
-			daos.writeByte(DataCommand.C2S_UDP_BYTEARRAY_DATA.getID());
-			daos.writeLong(System.currentTimeMillis());
-			daos.writeUTF(gameid);
-			daos.writeInt(player_id);
-			daos.writeInt(b.length);
-			daos.write(b, 0, b.length);
-			daos.writeByte(Statics.CHECK_BYTE);
-			this.udpconn.sendPacket(daos.getByteArray());
-			daos.close();
+		DataArrayOutputStream daos = new DataArrayOutputStream();
+		daos.writeByte(DataCommand.C2S_UDP_BYTEARRAY_DATA.getID());
+		daos.writeLong(System.currentTimeMillis());
+		daos.writeUTF(gameid);
+		daos.writeInt(player_id);
+		daos.writeInt(b.length);
+		daos.write(b, 0, b.length);
+		daos.writeByte(Statics.CHECK_BYTE);
+		this.udpconn.sendPacket(daos.getByteArray());
+		daos.close();
 		/*} catch (IOException e) {
 			e.printStackTrace();
 		}*/
@@ -568,17 +560,17 @@ public class ConnectorMain implements Runnable {
 			throw new RuntimeException("You have not joined a game yet");
 		}
 		//try {
-			byte b[] = Serialization.Serialize(obj);
-			DataArrayOutputStream daos = new DataArrayOutputStream();
-			daos.writeByte(DataCommand.C2S_UDP_OBJECT_DATA.getID());
-			daos.writeLong(System.currentTimeMillis());
-			daos.writeUTF(gameid);
-			daos.writeInt(player_id);
-			daos.writeInt(b.length);
-			daos.write(b, 0, b.length);
-			daos.writeByte(Statics.CHECK_BYTE);
-			this.udpconn.sendPacket(daos.getByteArray());
-			daos.close();
+		byte b[] = Serialization.Serialize(obj);
+		DataArrayOutputStream daos = new DataArrayOutputStream();
+		daos.writeByte(DataCommand.C2S_UDP_OBJECT_DATA.getID());
+		daos.writeLong(System.currentTimeMillis());
+		daos.writeUTF(gameid);
+		daos.writeInt(player_id);
+		daos.writeInt(b.length);
+		daos.write(b, 0, b.length);
+		daos.writeByte(Statics.CHECK_BYTE);
+		this.udpconn.sendPacket(daos.getByteArray());
+		daos.close();
 		/*} catch (IOException e) {
 			e.printStackTrace();
 		}*/
@@ -596,10 +588,10 @@ public class ConnectorMain implements Runnable {
 			throw new RuntimeException("You have not joined a game yet");
 		}
 		//try {
-			synchronized (tcpconn.dos) {
-				tcpconn.dos.writeByte(DataCommand.C2S_OUT_OF_GAME.getID());
-				tcpconn.dos.writeByte(Statics.CHECK_BYTE);
-			}
+		synchronized (tcpconn.dos) {
+			tcpconn.dos.writeByte(DataCommand.C2S_OUT_OF_GAME.getID());
+			tcpconn.dos.writeByte(Statics.CHECK_BYTE);
+		}
 		/*} catch (IOException e) {
 			e.printStackTrace();
 		}*/
@@ -618,24 +610,24 @@ public class ConnectorMain implements Runnable {
 			throw new RuntimeException("You have not joined a game yet");
 		}
 		//try {
-			synchronized (tcpconn.dos) {
-				tcpconn.dos.writeByte(DataCommand.C2S_WINNER.getID());
-				tcpconn.dos.writeByte(Statics.CHECK_BYTE);
-			}
+		synchronized (tcpconn.dos) {
+			tcpconn.dos.writeByte(DataCommand.C2S_WINNER.getID());
+			tcpconn.dos.writeByte(Statics.CHECK_BYTE);
+		}
 		/*} catch (IOException e) {
 			e.printStackTrace();
 		}*/
 	}
 
-	
+
 	private void checkVersion() throws IOException { 
 		//try {
-			//p("Checking version...");
-			synchronized (tcpconn.dos) {
-				tcpconn.dos.writeByte(DataCommand.C2S_VERSION.getID());
-				tcpconn.dos.writeInt(Statics.COMMS_VERSION);
-				tcpconn.dos.writeByte(Statics.CHECK_BYTE);
-			}
+		//p("Checking version...");
+		synchronized (tcpconn.dos) {
+			tcpconn.dos.writeByte(DataCommand.C2S_VERSION.getID());
+			tcpconn.dos.writeInt(Statics.COMMS_VERSION);
+			tcpconn.dos.writeByte(Statics.CHECK_BYTE);
+		}
 		/*} catch (IOException e) {
 			e.printStackTrace();
 		}*/
@@ -661,8 +653,8 @@ public class ConnectorMain implements Runnable {
 	public String getPlayerName() {
 		return this.playername;
 	}
-	
-	
+
+
 	/**
 	 * Gets the current game stage.
 	 * @return The enum of the current game stage.
@@ -670,8 +662,8 @@ public class ConnectorMain implements Runnable {
 	public synchronized GameStage getGameStage() {
 		return this.game_stage;
 	}
-	
-	
+
+
 	/**
 	 * 
 	 * @return The name of the winning player.
@@ -724,24 +716,6 @@ public class ConnectorMain implements Runnable {
 	}
 
 
-	/**
-	 * 
-	 * @return A string describing the last error.
-	 */
-	public String getLastError() {
-		return this.last_error;
-	}
-
-
-	/**
-	 * 
-	 * @return The error code of the last error.  See ErrorCodes.java. 
-	 */
-	public int getLastErrorCode() {
-		return this.last_error_code;
-	}
-
-	// todo - search for catch IOExc and remove
 	public static void p(String s) {
 		System.out.println("Client: " + Dates.FormatDate(Calendar.getInstance().getTime(), Dates.UKDATE_FORMAT_WITH_TIME) + "-" + s);
 	}
@@ -754,7 +728,7 @@ public class ConnectorMain implements Runnable {
 
 	public static void debug(String s) {
 		//if (Statics.DEBUG) {
-			System.out.println("Debug: " + Dates.FormatDate(Calendar.getInstance().getTime(), Dates.UKDATE_FORMAT_WITH_TIME) + "-" + s);
+		System.out.println("Debug: " + Dates.FormatDate(Calendar.getInstance().getTime(), Dates.UKDATE_FORMAT_WITH_TIME) + "-" + s);
 		//}
 	}
 
@@ -769,17 +743,17 @@ public class ConnectorMain implements Runnable {
 		}
 	}
 
-	
+
 	public void setLastServerResponseTime() {
 		this.last_server_alive_response_time = System.currentTimeMillis();
 	}
-	
-	
+
+
 	public void setServerHasResponded() {
 		this.server_responded_to_udpconn = true;
 	}
-	
-	
+
+
 	/**
 	 * Get a map of the current players.  Note that this is often recreated.
 	 * @return A map of the current players.
@@ -787,8 +761,8 @@ public class ConnectorMain implements Runnable {
 	/*public Map<Integer, ClientPlayerData> getCurrentPlayers() {
 		return this.players;
 	}*/
-	
-	
+
+
 	/**
 	 * Get a player's data by id.
 	 * @param id
@@ -798,7 +772,7 @@ public class ConnectorMain implements Runnable {
 		return this.players.get(id);
 	}
 
-	
+
 	/**
 	 * @return a string show a list of all the current players.
 	 */
@@ -806,40 +780,40 @@ public class ConnectorMain implements Runnable {
 		StringBuilder str = new StringBuilder();
 		for (ClientPlayerData pd : this.players.values()) {
 			str.append(pd.toString() + "\n");
-			
+
 		}
 		return str.toString();
 	}
-	
-	
+
+
 	public String getServer() {
 		return server;
 	}
-	
-	
+
+
 	public int getPort() {
 		return port;
 	}
-	
-	
+
+
 	public String getGameID() {
 		return this.gameid;
 	}
-	
-	
+
+
 	/**
 	 * If you want to select a player to be the main player, use this function.  Obviuously the "main" player may
 	 * change if players disconnect.
 	 * @return true if we're the "main" player.
 	 */
-	/*public boolean areWeFirstPlayer() {
+	public boolean areWeFirstPlayer() {
 		synchronized (players) {
-		int id = this.players.keySet().iterator().next();
-		return id == this.player_id;
+			int id = this.players.keySet().iterator().next();
+			return id == this.player_id;
 		}
-	}*/
-	
-	
+	}
+
+
 	public int getNumPlayers() {
 		return this.players.size();
 	}

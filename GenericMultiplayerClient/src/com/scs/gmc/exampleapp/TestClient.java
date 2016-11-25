@@ -1,25 +1,4 @@
-/*
- *  This file is part of GenericMultiplayerConnector.
-
-    GenericMultiplayerConnector is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    GenericMultiplayerConnector is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with GenericMultiplayerConnector.  If not, see <http://www.gnu.org/licenses/>.
-
-    GenericMultiplayerConnector (C)Stephen Carlyle-Smith
-
- */
-
 package com.scs.gmc.exampleapp;
-
 
 import java.io.IOException;
 import java.util.Calendar;
@@ -68,57 +47,48 @@ public class TestClient implements Runnable, IGameClient {
 	@Override
 	public void run() {
 		try {
-		boolean success = connector.connect(); // Connect to the server
-		if (success) {
+			connector.connect(); // Connect to the server
 			for (int i=0 ; i<3 ; i++) { // Run through 3 games
-				success = connector.joinGame();
-				if (success) {
-
-					// Wait for enough players to join
-					while (connector.getGameStage() == GameStage.WAITING_FOR_PLAYERS) {
-						Functions.delay(200);
-					}
-
-					p("Current Players:\n" + connector.getCurrentPlayersAsString());
-					p("Starting game");
-
-					// Play a very simple game where we add a random number to our score.
-					byte score = 0;
-					// For testing sending byte arrays
-					byte b[] = new byte[2];
-					b[0] = SCORE_CODE;
-					while (connector.getGameStage() == GameStage.IN_PROGRESS) {
-						score += new Random().nextInt(10);
-
-						// Send our data to the server
-						b[1] = score;
-						connector.sendByteArrayByTCP(b);
-						connector.sendByteArrayByUDP(b);
-						connector.sendKeyValueDataByTCP(SCORE_CODE, score);
-						connector.sendKeyValueDataByUDP(SCORE_CODE, score);
-						connector.sendStringDataByTCP("Hello from " + this.connector.getPlayerName());
-						connector.sendStringDataByUDP("Hello from " + this.connector.getPlayerName());
-
-						// Have we won?
-						if (score >= 100) {
-							p("I have won!");
-							connector.sendIAmTheWinner();
-							break;
-						}
-						Functions.delay(500);
-					}
-					connector.waitForStage(GameStage.FINISHED); // To have the winner confirmed, since two clients might finished at the same time.
-					p("Finished game.  The winner was " + connector.getWinnersName());
-				} else {
-					pe("Error: " + connector.getLastError());
+				connector.joinGame();
+				// Wait for enough players to join
+				while (connector.getGameStage() == GameStage.WAITING_FOR_PLAYERS) {
+					Functions.delay(200);
 				}
-			}
-		} else {
-			pe("Error: " + connector.getLastError());
-		}
 
-		// All done, so disconnect. 
-		connector.disconnect();
+				p("Current Players:\n" + connector.getCurrentPlayersAsString());
+				p("Starting game");
+
+				// Play a very simple game where we add a random number to our score.
+				byte score = 0;
+				// For testing sending byte arrays
+				byte b[] = new byte[2];
+				b[0] = SCORE_CODE;
+				while (connector.getGameStage() == GameStage.IN_PROGRESS) {
+					score += new Random().nextInt(10);
+
+					// Send our data to the server
+					b[1] = score;
+					connector.sendByteArrayByTCP(b);
+					connector.sendByteArrayByUDP(b);
+					connector.sendKeyValueDataByTCP(SCORE_CODE, score);
+					connector.sendKeyValueDataByUDP(SCORE_CODE, score);
+					connector.sendStringDataByTCP("Hello from " + this.connector.getPlayerName());
+					connector.sendStringDataByUDP("Hello from " + this.connector.getPlayerName());
+
+					// Have we won?
+					if (score >= 100) {
+						p("I have won!");
+						connector.sendIAmTheWinner();
+						break;
+					}
+					Functions.delay(500);
+				}
+				connector.waitForStage(GameStage.FINISHED); // To have the winner confirmed, since two clients might finished at the same time.
+				p("Finished game.  The winner was " + connector.getWinnersName());
+			}
+
+			// All done, so disconnect. 
+			connector.disconnect();
 		} catch (IOException ex) {
 			ex.printStackTrace();
 		}
@@ -192,8 +162,8 @@ public class TestClient implements Runnable, IGameClient {
 
 
 	@Override
-	public void error(int error_code, String msg) {
-		System.err.println("Error! " + msg + " (" + error_code + ")");
+	public void error(Throwable ex) {
+		System.err.println("Error! " + ex.getMessage());
 	}
 
 
@@ -209,13 +179,13 @@ public class TestClient implements Runnable, IGameClient {
 
 	@Override
 	public void objectReceivedByTCP(int fromplayerid, Object obj) {
-		
+
 	}
 
 
 	@Override
 	public void objectReceivedByUDP(long time, int fromplayerid, Object obj) {
-		
+
 	}
 
 

@@ -96,4 +96,4 @@ Also, a multiplayer maze game called [MazEvolution](https://bitbucket.org/SteveS
 
 Designed and programmed by Stephen Carlyle-Smith (stephen.carlylesmith@googlemail.com)
 
-Licenced under GPLv3.
+Licenced under MIT licence.

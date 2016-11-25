@@ -1,23 +1,3 @@
-/*
- *  This file is part of GenericMultiplayerConnector.
-
-    GenericMultiplayerConnector is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    GenericMultiplayerConnector is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with GenericMultiplayerConnector.  If not, see <http://www.gnu.org/licenses/>.
-
-    GenericMultiplayerConnector (C)Stephen Carlyle-Smith
-
- */
-
 package com.scs.gmc;
 
 import java.awt.GridLayout;
@@ -28,6 +8,7 @@ import java.awt.event.WindowListener;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Properties;
@@ -115,13 +96,14 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 			dialog.setVisible(true);
 
 			ConnectorMain connector = new ConnectorMain(game_client, options.getServer().trim(), options.getPort(), options.getPlayersName(), options.getGameCode(), options.getMinPlayers(), options.getMaxPlayers());
-			if (connector.connect()) {
+			try {
+				connector.connect();
 				dialog.setVisible(false);
 				return connector;
-			} else {
+			} catch (IOException ex) {
 				dialog.setVisible(false);
-				game_client.error(connector.getLastErrorCode(), connector.getLastError());
-				int dialogResult = JOptionPane.showConfirmDialog (null, "Error connecting to server: " + connector.getLastError() + ".  Do you wish to retry?", "Error", JOptionPane.YES_NO_OPTION);
+				//game_client.error(connector.getLastErrorCode(), connector.getLastError());
+				int dialogResult = JOptionPane.showConfirmDialog (null, "Error connecting to server: " + ex.getMessage() + ".  Do you wish to retry?", "Error", JOptionPane.YES_NO_OPTION);
 				if(dialogResult != JOptionPane.YES_OPTION){
 					break;
 				}

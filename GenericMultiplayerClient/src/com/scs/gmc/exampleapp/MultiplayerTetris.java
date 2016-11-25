@@ -1,23 +1,3 @@
-/*
- *  This file is part of GenericMultiplayerConnector.
-
-    GenericMultiplayerConnector is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    GenericMultiplayerConnector is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with GenericMultiplayerConnector.  If not, see <http://www.gnu.org/licenses/>.
-
-    GenericMultiplayerConnector (C)Stephen Carlyle-Smith
-
- */
-
 package com.scs.gmc.exampleapp;
 
 import java.awt.Color;
@@ -87,6 +67,12 @@ public class MultiplayerTetris extends JFrame {
 			// todo - check min players
 			// User pressed cancel or connection failed.
 			System.exit(0);
+		}
+		try {
+			connector.joinGame();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+			return;
 		}
 		textarea.append("Connected to server " + connector.getServer() + ":" + connector.getPort() + "\n");
 		textarea.append("Hello " + connector.getPlayerName() + ".\n");
@@ -169,7 +155,6 @@ public class MultiplayerTetris extends JFrame {
 
 		@Override
 		public void run() {
-			connector.joinGame();
 			textarea.append("Connected to " + connector.getServer() + ":" + connector.getPort() + ".\n");
 			textarea.append("Joined game '" + connector.getGameID() + "'.\n");
 			textarea.append("Waiting for other players...\n");
@@ -480,8 +465,8 @@ public class MultiplayerTetris extends JFrame {
 		}
 
 		@Override
-		public void error(int error_code, String msg) {
-			textarea.append("Error:" + msg + "\n");
+		public void error(Throwable ex) {
+			textarea.append("Error:" + ex.getMessage() + "\n");
 		}
 
 		@Override

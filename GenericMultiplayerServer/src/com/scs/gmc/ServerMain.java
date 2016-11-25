@@ -1,21 +1,11 @@
 /*
- *  This file is part of GenericMultiplayerConnector.
+ * Copyright (c)2016 Stephen Carlyle-Smith
 
-    GenericMultiplayerConnector is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-    GenericMultiplayerConnector is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-    You should have received a copy of the GNU General Public License
-    along with GenericMultiplayerConnector.  If not, see <http://www.gnu.org/licenses/>.
-
-    GenericMultiplayerConnector (C)Stephen Carlyle-Smith
-
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 package com.scs.gmc;
@@ -42,11 +32,9 @@ import ssmith.net.TCPConnectionListener;
 
 public final class ServerMain implements ErrorHandler, IConnectionCollector {
 
-	//private final Map<TCPClientConnection, PlayerData> players_by_sck = new HashMap<TCPClientConnection, PlayerData>();
-	private final List<TCPClientConnection> players_by_sck = new ArrayList<TCPClientConnection>(); // todo - rename
+	private final List<TCPClientConnection> connections = new ArrayList<TCPClientConnection>();
 	private final Map<String, ServerGame> games = new HashMap<String, ServerGame>();
 
-	//private final Map<TCPClientConnection, PlayerData> new_players = new HashMap<TCPClientConnection, PlayerData>(); // temp list to avoid sync issues
 	private final List<Socket> new_players = new ArrayList<Socket>(); // temp list to avoid sync issues
 	private final List<TCPClientConnection> to_remove = new ArrayList<TCPClientConnection>();  // temp list to avoid sync issues
 
@@ -108,9 +96,9 @@ public final class ServerMain implements ErrorHandler, IConnectionCollector {
 					while (new_players.isEmpty() == false) {
 						Socket sck = this.new_players.remove(0);
 						TCPClientConnection conn = new TCPClientConnection(sck, this);
-						synchronized (players_by_sck) {
+						synchronized (connections) {
 							PlayerData pd = new PlayerData(this, conn);
-							this.players_by_sck.add(conn);
+							this.connections.add(conn);
 							conn.playerdata = pd;
 							new Thread(conn, "TCPClientConnection").start();
 						}
@@ -132,8 +120,8 @@ public final class ServerMain implements ErrorHandler, IConnectionCollector {
 		this.udp_listener.stopNow();
 		p("Server exiting");
 		// loop through all connections and close them
-		synchronized (players_by_sck) {
-			Iterator<TCPClientConnection> it = players_by_sck.iterator();//.keySet().iterator();
+		synchronized (connections) {
+			Iterator<TCPClientConnection> it = connections.iterator();//.keySet().iterator();
 			while (it.hasNext()) {
 				TCPClientConnection conn = it.next();
 				conn.close();
@@ -149,10 +137,10 @@ public final class ServerMain implements ErrorHandler, IConnectionCollector {
 	 * @throws IOException
 	 */
 	private void removePlayer(TCPClientConnection conn) throws IOException {
-		synchronized (players_by_sck) {
-			if (players_by_sck.contains(conn)) { // Have they already been removed?
+		synchronized (connections) {
+			if (connections.contains(conn)) { // Have they already been removed?
 				PlayerData playerdata = conn.playerdata;
-				players_by_sck.remove(conn); // So we don't send them the "remove object" messages
+				connections.remove(conn); // So we don't send them the "remove object" messages
 				if (playerdata != null) {
 					ServerMain.p("Removed player " + playerdata.name + ".");
 					ServerGame game = this.games.get(playerdata.gameid);
@@ -173,7 +161,7 @@ public final class ServerMain implements ErrorHandler, IConnectionCollector {
 					}
 				}
 				conn.close(); // This gets passed separately as player may be null if they haven't join
-				ServerMain.p("There are now " + players_by_sck.size() + " connections.");
+				ServerMain.p("There are now " + connections.size() + " connections.");
 			}
 		}
 	}
@@ -283,7 +271,7 @@ public final class ServerMain implements ErrorHandler, IConnectionCollector {
 		DataArrayOutputStream dos = new DataArrayOutputStream();
 		dos.writeByte(DataCommand.S2C_TCP_OBJECT_DATA.getID());
 		dos.writeInt(fromplayerid);
-		dos.writeInt(data.length);
+		dos.writeInt(data.length); // todo - use long
 		dos.write(data, 0, data.length);
 		dos.writeByte(Statics.CHECK_BYTE);
 		this.sendTCPToAll(game, dos, fromplayerid);
