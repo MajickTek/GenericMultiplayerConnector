@@ -51,14 +51,14 @@ Joining a game:-
 
 Sending data to all other clients:-
 ```java
-	// There are other methods for sending data; this method sends a key/value pair by TCP.  When data is sent, it is automatically received by all the other clients.
+	// There are other methods for sending different types of data, e.g. byte arrays, objects; this method sends a key/value pair by TCP.  When data is sent, it is automatically received by all the other clients.
 	connector.sendKeyValueDataByTCP(code, score);
 ```
 
 Receving data
 ```java
 	// The 'game' object is your class that implements the IGameClient interface.
-	game.dataReceivedByTCP(int fromplayerid, int code, int value) { 
+	game.keyValueReceivedByTCP(int fromplayerid, int code, int value) { 
 	// Do stuff with the data 
 }
 ```
@@ -88,7 +88,7 @@ I run a GMC server at 178.62.91.22:9996 that can be used for inter-game communic
 
 
 ## Games using this library
-Multiplayer Tetris is included in the library; a player's game speeds up when an opponent completes a row.  
+Multiplayer Tetris is included in the GMC library; a player's game speeds up when an opponent completes a row.  
 
 I've also retrofitted a version of Tempest to be multi-player.  This can be found [here](https://github.com/SteveSmith16384/wbt-multiplayer).
 
