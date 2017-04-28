@@ -83,10 +83,6 @@ Who has the server confirmed as the winner?
 For further help, please see the [Wiki](https://bitbucket.org/SteveSmith16384/genericmultiplayerconnector/wiki/Home).
 
 
-## Public Server
-I run a GMC server at 178.62.91.22:9996 that can be used for inter-game communication.  Note that this server is not guaranteed to be available 24/7 though, and should not be used for anything mission-critical.
-
-
 ## Games using this library
 Multiplayer Tetris is included in the GMC library; a player's game speeds up when an opponent completes a row.  
 
