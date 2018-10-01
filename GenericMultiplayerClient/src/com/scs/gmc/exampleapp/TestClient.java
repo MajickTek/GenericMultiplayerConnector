@@ -4,13 +4,13 @@ import java.io.IOException;
 import java.util.Calendar;
 import java.util.Random;
 
+import com.scs.gmc.client.ConnectorMain;
+import com.scs.gmc.client.ConnectorMain.GameStage;
+import com.scs.gmc.client.IGameClient;
+import com.scs.gmc.shared.Statics;
+
 import ssmith.lang.Dates;
 import ssmith.lang.Functions;
-
-import com.scs.gmc.ConnectorMain;
-import com.scs.gmc.ConnectorMain.GameStage;
-import com.scs.gmc.IGameClient;
-import com.scs.gmc.Statics;
 
 /**
  * This is an example of the simplest usage of GMC. 
@@ -40,7 +40,7 @@ public class TestClient implements Runnable, IGameClient {
 
 	public TestClient(String name, String gamecode) {
 		// Create the connector
-		connector = new ConnectorMain(this, "127.0.0.1", Statics.DEF_PORT, name, gamecode, MIN_PLAYERS, MAX_PLAYERS);
+		connector = new ConnectorMain(this, "127.0.0.1", Statics.DEFAULT_PORT, name, gamecode, MIN_PLAYERS, MAX_PLAYERS);
 	}
 
 

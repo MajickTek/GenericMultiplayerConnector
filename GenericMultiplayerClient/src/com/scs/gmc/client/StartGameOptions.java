@@ -1,4 +1,4 @@
-package com.scs.gmc;
+package com.scs.gmc.client;
 
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
@@ -23,6 +23,8 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+
+import com.scs.gmc.shared.Statics;
 
 import ssmith.awt.AWTFunctions;
 
@@ -188,7 +190,7 @@ public class StartGameOptions extends JFrame implements ActionListener, WindowLi
 				}
 			} else {
 				this.txt_server.getModel().setSelectedItem("127.0.0.1");//"178.62.91.22");
-				this.txt_port.setText(""+Statics.DEF_PORT);
+				this.txt_port.setText(""+Statics.DEFAULT_PORT);
 				this.txt_min_players.setText("2");
 				this.txt_max_players.setText("99");
 

@@ -20,10 +20,5 @@
 			<type>2</type>
 			<location>C:/code/genericmultiplayerconnector/GenericMultiplayerShared/src</location>
 		</link>
-		<link>
-			<name>src3</name>
-			<type>2</type>
-			<location>C:/opt/sys/genericmultiplayerconnector/GenericMultiplayerShared/src</location>
-		</link>
 	</linkedResources>
 </projectDescription>

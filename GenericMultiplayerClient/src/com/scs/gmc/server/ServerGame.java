@@ -1,4 +1,4 @@
-package com.scs.gmc;
+package com.scs.gmc.server;
 
 import java.util.HashMap;
 

@@ -5,11 +5,10 @@ import java.io.IOException;
 
 import javax.swing.JFrame;
 
-import com.scs.gmc.ChatWindow;
-import com.scs.gmc.ConnectorMain;
-import com.scs.gmc.IGameClient;
-import com.scs.gmc.SimpleStartGameOptions;
-import com.scs.gmc.StartGameOptions;
+import com.scs.gmc.client.ConnectorMain;
+import com.scs.gmc.client.IGameClient;
+import com.scs.gmc.client.SimpleStartGameOptions;
+import com.scs.gmc.client.StartGameOptions;
 
 public class SimpleChat extends ChatWindow implements IGameClient {
 

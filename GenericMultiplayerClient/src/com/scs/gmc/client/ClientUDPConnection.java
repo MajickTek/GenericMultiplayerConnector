@@ -1,4 +1,4 @@
-package com.scs.gmc;
+package com.scs.gmc.client;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -7,6 +7,9 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
+
+import com.scs.gmc.shared.DataCommand;
+import com.scs.gmc.shared.Statics;
 
 import ssmith.io.Serialization;
 

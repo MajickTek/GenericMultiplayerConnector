@@ -8,7 +8,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.scs.gmc;
+package com.scs.gmc.server;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -22,6 +22,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+
+import com.scs.gmc.shared.DataCommand;
+import com.scs.gmc.shared.Statics;
 
 import ssmith.lang.DataArrayOutputStream;
 import ssmith.lang.Dates;
@@ -65,11 +68,11 @@ public final class ServerMain implements ErrorHandler, IConnectionCollector {
 			e.printStackTrace();
 		}
 
-		int port = Statics.DEF_PORT;
+		int port = Statics.DEFAULT_PORT;
 		try {
-			port = Integer.parseInt(props.getProperty("port", ""+Statics.DEF_PORT));
+			port = Integer.parseInt(props.getProperty("port", ""+Statics.DEFAULT_PORT));
 		} catch (NumberFormatException ex) {
-			pe("Error parsing port - using default");
+			pe("Error parsing port - using default of " + Statics.DEFAULT_PORT);
 		}
 
 		TCPConnectionListener new_conn_listener = new TCPConnectionListener(port, -1, this, this);

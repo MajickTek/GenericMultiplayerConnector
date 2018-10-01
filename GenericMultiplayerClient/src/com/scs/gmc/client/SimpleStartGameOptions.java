@@ -1,4 +1,4 @@
-package com.scs.gmc;
+package com.scs.gmc.client;
 
 import java.awt.GridLayout;
 

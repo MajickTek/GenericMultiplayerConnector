@@ -1,4 +1,4 @@
-package com.scs.gmc;
+package com.scs.gmc.exampleapp;
 
 import java.awt.BorderLayout;
 import java.awt.event.FocusEvent;

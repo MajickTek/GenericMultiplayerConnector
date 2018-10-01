@@ -8,13 +8,17 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.scs.gmc;
+package com.scs.gmc.client;
 
 import java.io.IOException;
 import java.net.Socket;
 import java.util.Calendar;
 import java.util.Map;
 import java.util.TreeMap;
+
+import com.scs.gmc.shared.DataCommand;
+import com.scs.gmc.shared.Statics;
+import com.scs.gmc.shared.TCPConnection;
 
 import ssmith.io.Serialization;
 import ssmith.lang.DataArrayOutputStream;
@@ -38,7 +42,7 @@ public class ConnectorMain implements Runnable {
 	private TCPConnection tcpconn;
 	private ClientUDPConnection udpconn;
 	private volatile boolean stop_now = false;
-	private Interval check_server_interval = new Interval(Statics.CHECK_SERVER_ALIVE_INTERVAL);
+	private Interval check_server_interval = new Interval(Statics.CHECK_SERVER_ALIVE_INTERVAL_MILLIS);
 	private int port;
 
 	//private String last_error;
@@ -361,7 +365,7 @@ public class ConnectorMain implements Runnable {
 				if (Statics.CHECK_SERVER_IS_ALIVE) {
 					if (check_server_interval.hitInterval()) {
 						this.checkServerIsAlive();
-						if (last_server_alive_response_time > 0 && System.currentTimeMillis() - last_server_alive_response_time > Statics.SERVER_DIED_DURATION ) {
+						if (last_server_alive_response_time > 0 && System.currentTimeMillis() - last_server_alive_response_time > Statics.SERVER_DIED_DURATION_MILLIS ) {
 							client.serverDown(System.currentTimeMillis() - last_server_alive_response_time);
 						}
 					}

@@ -1,4 +1,4 @@
-package com.scs.gmc;
+package com.scs.gmc.client;
 
 /**
  * Class to store data about all players in a game.

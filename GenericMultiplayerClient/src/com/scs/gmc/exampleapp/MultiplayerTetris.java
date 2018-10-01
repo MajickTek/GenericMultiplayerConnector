@@ -14,10 +14,10 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 
-import com.scs.gmc.ConnectorMain;
-import com.scs.gmc.ConnectorMain.GameStage;
-import com.scs.gmc.IGameClient;
-import com.scs.gmc.StartGameOptions;
+import com.scs.gmc.client.ConnectorMain;
+import com.scs.gmc.client.ConnectorMain.GameStage;
+import com.scs.gmc.client.IGameClient;
+import com.scs.gmc.client.StartGameOptions;
 
 /**
  * A simple implementation of Tetris designed to show real-world usage of GMC.

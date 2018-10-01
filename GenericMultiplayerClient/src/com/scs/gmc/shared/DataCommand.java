@@ -1,4 +1,4 @@
-package com.scs.gmc;
+package com.scs.gmc.shared;
 
 /**
  * Commands for communication.  S2C = Server to client, C2S = Client to server.

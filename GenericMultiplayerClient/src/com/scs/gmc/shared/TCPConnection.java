@@ -1,4 +1,4 @@
-package com.scs.gmc;
+package com.scs.gmc.shared;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
