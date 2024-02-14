@@ -42,7 +42,7 @@ Connecting to the server:-
 	connector.connect();
 ```
 
-The parameters are <ip to connect to>, <port#>, <player's name>, <game code>, <minimum players>, and <maximum players>.
+The parameters are `<ip to connect to>`, `<port#>`, `<player's name>`, `<game code>`, `<minimum players>`, and `<maximum players>`.
 
 Joining a game:-
 ```java
@@ -80,7 +80,7 @@ Who has the server confirmed as the winner?
 	System.out.println("The winner was " + connector.getWinnersName() + "!");
 ```
 
-For further help, please see the [Wiki](https://bitbucket.org/SteveSmith16384/genericmultiplayerconnector/wiki/Home).
+For further help, please see the [Wiki](https://github.com/MajickTek/GenericMultiplayerConnector/wiki/Home).
 
 
 ## Games using this library
