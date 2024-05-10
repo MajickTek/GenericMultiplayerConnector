@@ -90,7 +90,7 @@ I've also retrofitted a version of Tempest to be multi-player.  This can be foun
 
 Also, a multiplayer maze game called [MazEvolution](https://bitbucket.org/SteveSmith16384/mazeevolution).
 
-
+Here's a tutorial on converting a standard singleplayer Tetris into multiplayer with this library: [Tutorial](https://javagmc.blogspot.com/p/blog-page.html)
 ### Credits
 
 Designed and programmed by Stephen Carlyle-Smith (stephen.carlylesmith@googlemail.com)
